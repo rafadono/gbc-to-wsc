@@ -12,7 +12,13 @@ test_runner: $(SRC) $(TEST_SRC)
 test: test_runner
 	./test_runner
 
-clean:
-	rm -f test_runner test_runner.exe *.o src/*.o
+submodule-update:
+	git submodule update --init --recursive
 
-.PHONY: all test clean
+game:
+	@python tools/pipeline.py $(ROM)
+
+clean:
+	rm -f test_runner test_runner.exe *.o src/*.o build/gbc_bridge_sample.wsc
+
+.PHONY: all test clean game submodule-update
