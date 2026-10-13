@@ -120,7 +120,18 @@ def run_pipeline(rom_path):
     print(f"  Path: {wsc_output}")
     print(f"  Size: {size} bytes")
     print(f"  Checksum: 0x{csum:04X}")
-    print("Ready to run in Mesen 2 or on physical hardware.")
+
+    try:
+        import test_wsc
+        runners = test_wsc.find_runners()
+        if runners:
+            print(f"Discovered test runner: {os.path.basename(runners[0])}")
+            print(f"To launch: python tools/test_wsc.py \"{wsc_output}\"")
+            print(f"To validate: python tools/test_wsc.py \"{wsc_output}\" --validate")
+        else:
+            print("Ready to run on physical hardware or desktop test runner.")
+    except Exception:
+        print("Ready to run on physical hardware or desktop test runner.")
     return True
 
 if __name__ == "__main__":

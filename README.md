@@ -127,7 +127,29 @@ Or via Makefile:
 make game ROM=roms/tetris.gb
 ```
 
-3. The generated WonderSwan Color executable will appear in `dist/<game_title>.wsc`, ready to be loaded into desktop test environments (Mesen 2, Mednafen) or flashed to physical hardware.
+3. The generated WonderSwan Color executable will appear in `dist/<game_title>.wsc`.
+
+### 3. Automated Validation and Desktop Execution
+
+Place any WonderSwan desktop runner executable (e.g. `mednafen.exe`, `Mesen.exe`) inside the `tools/runner/` directory. The test system will auto-detect it:
+
+```bash
+# List discovered test runners
+python tools/test_wsc.py --list
+
+# Launch generated binary interactively
+python tools/test_wsc.py dist/super_marioland.wsc
+
+# Run automated validation test (monitors execution for 4s, verifies no crash)
+python tools/test_wsc.py dist/super_marioland.wsc --validate
+```
+
+Or via Makefile:
+
+```bash
+make run ROM=dist/super_marioland.wsc
+make validate ROM=dist/super_marioland.wsc
+```
 
 ---
 

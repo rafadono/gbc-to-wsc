@@ -24,3 +24,8 @@ Thumbs.db
 # Python cache
 __pycache__/
 *.pyc
+
+# External test runners
+tools/runner/*
+!tools/runner/README.md
+!tools/runner/.gitkeep

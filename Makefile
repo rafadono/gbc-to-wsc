@@ -20,7 +20,16 @@ submodule-update:
 game:
 	@python tools/pipeline.py $(ROM)
 
+run:
+	@python tools/test_wsc.py $(ROM)
+
+validate:
+	@python tools/test_wsc.py $(ROM) --validate 4.0
+
+runners:
+	@python tools/test_wsc.py --list
+
 clean:
 	rm -f $(TARGET) *.o src/*.o build/gbc_bridge_sample.wsc
 
-.PHONY: all test clean game submodule-update
+.PHONY: all test clean game submodule-update run validate runners
