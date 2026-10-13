@@ -39,7 +39,7 @@ The `gbc_wsc_hal` bridges the recompiled and decompiled game logic directly to n
 | Subsystem | Game Boy / Color (GBC) | WonderSwan Color (WSC) | Compatibility Handling |
 | :--- | :--- | :--- | :--- |
 | **RAM** | 32 KB WRAM + 16 KB VRAM (~48 KB) | 64 KB Unified IRAM | Mapped inside the 64 KB physical IRAM boundary. |
-| **Resolution** | 160 x 144 @ 59.7 Hz | 224 x 144 @ 75.4 Hz | Exact 144p vertical match. Horizontal viewport centered with 32 px margins. |
+| **Resolution** | 160 x 144 @ 59.7 Hz | 224 x 144 @ 75.4 Hz | Exact 144p vertical match. Dual screen mode support:<br>- `STANDARD`: 160x144 centered with 32 px black borders.<br>- `WIDESCREEN`: 224x144 full-width for decompiled widescreen ports. |
 | **Tile Format** | 2BPP Interleaved (2 bytes per row) | 2BPP Planar (8 bytes plane 0, 8 bytes plane 1) | Real-time byte transpose de-interleaver. |
 | **Sprites** | 40 OAM sprites (8x8 or 8x16) | 128 hardware sprites (8x8) | 8x8 sprites mapped 1:1; 8x16 sprites split into two 8x8 sprites. |
 | **Window** | 1 Window layer (`WX`, `WY`) | `Screen 2` hardware tilemap | Projected directly onto independent `Screen 2`. |
@@ -105,7 +105,7 @@ Expected output:
 ========================================
 
 Results:
-  Passed: 46
+  Passed: 57
   Failed: 0
 
 ALL TESTS PASSED SUCCESSFULLY (Hito 1, 2 & 4 Core verified).

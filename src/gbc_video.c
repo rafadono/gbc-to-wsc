@@ -21,11 +21,40 @@ void gbc_video_init(void) {
     g_video.vram_dirty = true;
     memset(g_video.tile_dirty, 1, sizeof(g_video.tile_dirty));
 
+    g_video.screen_mode = GBC_SCREEN_MODE_STANDARD;
+    g_video.viewport_x_offset = GB_VIEWPORT_X_OFFSET;
+    g_video.viewport_width = GB_SCREEN_W;
+
     gbc_video_update_palettes();
 }
 
 void gbc_video_reset(void) {
+    gbc_screen_mode_t prev_mode = g_video.screen_mode;
     gbc_video_init();
+    gbc_video_set_screen_mode(prev_mode);
+}
+
+void gbc_video_set_screen_mode(gbc_screen_mode_t mode) {
+    g_video.screen_mode = mode;
+    if (mode == GBC_SCREEN_MODE_WIDESCREEN) {
+        g_video.viewport_x_offset = 0;
+        g_video.viewport_width = WSC_SCREEN_W;
+    } else {
+        g_video.viewport_x_offset = GB_VIEWPORT_X_OFFSET;
+        g_video.viewport_width = GB_SCREEN_W;
+    }
+}
+
+gbc_screen_mode_t gbc_video_get_screen_mode(void) {
+    return g_video.screen_mode;
+}
+
+uint8_t gbc_video_get_viewport_x_offset(void) {
+    return g_video.viewport_x_offset;
+}
+
+uint8_t gbc_video_get_viewport_width(void) {
+    return g_video.viewport_width;
 }
 
 void gbc_tile_to_wsc_2bpp(const uint8_t *gb_tile, uint8_t *wsc_tile) {
@@ -95,10 +124,13 @@ void gbc_video_update_sprites(void) {
             continue;
         }
 
-        int wsc_x = (int)entry->x - 8 + GB_VIEWPORT_X_OFFSET;
+        int wsc_x = (int)entry->x - 8 + g_video.viewport_x_offset;
         int wsc_y = (int)entry->y - 16;
 
-        if (wsc_x < -7 || wsc_x >= WSC_SCREEN_W || wsc_y < -15 || wsc_y >= WSC_SCREEN_H) {
+        int min_x = (g_video.screen_mode == GBC_SCREEN_MODE_STANDARD) ? (GB_VIEWPORT_X_OFFSET - 7) : -7;
+        int max_x = (g_video.screen_mode == GBC_SCREEN_MODE_STANDARD) ? (GB_VIEWPORT_X_OFFSET + GB_SCREEN_W) : WSC_SCREEN_W;
+
+        if (wsc_x < min_x || wsc_x >= max_x || wsc_y < -15 || wsc_y >= WSC_SCREEN_H) {
             continue;
         }
 
@@ -140,7 +172,7 @@ void gbc_video_update_window(void) {
     g_video.window_enabled = (g_video.lcdc & GB_LCDC_WIN_ENABLE) != 0;
     if (g_video.window_enabled) {
         g_video.win_y = g_video.wy;
-        g_video.win_x = (g_video.wx >= 7) ? (g_video.wx - 7 + GB_VIEWPORT_X_OFFSET) : GB_VIEWPORT_X_OFFSET;
+        g_video.win_x = (g_video.wx >= 7) ? (g_video.wx - 7 + g_video.viewport_x_offset) : g_video.viewport_x_offset;
     }
 }
 

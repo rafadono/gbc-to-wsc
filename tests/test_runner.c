@@ -244,6 +244,56 @@ static void test_mbc5_banking(void) {
     TEST_ASSERT(gbc_read8(0x4000) == 0x07, "MBC5 selects bank 7");
 }
 
+static void test_screen_mode_standard_borders(void) {
+    gbc_hal_reset();
+    gbc_video_set_screen_mode(GBC_SCREEN_MODE_STANDARD);
+
+    TEST_ASSERT(gbc_video_get_screen_mode() == GBC_SCREEN_MODE_STANDARD, "Screen mode must be standard");
+    TEST_ASSERT(gbc_video_get_viewport_x_offset() == 32, "Standard mode offset must be 32 px");
+    TEST_ASSERT(gbc_video_get_viewport_width() == 160, "Standard mode viewport width must be 160 px");
+
+    g_video.lcdc |= (GB_LCDC_ENABLE | GB_LCDC_OBJ_ENABLE);
+    g_video.lcdc &= ~GB_LCDC_OBJ_SIZE;
+
+    // Sprite 0: Within 160px bounds (GB X=16, actual X=8, WSC X=40)
+    g_gb.oam[0] = 32; g_gb.oam[1] = 16; g_gb.oam[2] = 0x01; g_gb.oam[3] = 0x00;
+
+    // Sprite 1: Outside 160px bounds, spilling into right black border (GB X=170, actual X=162, WSC X=194)
+    g_gb.oam[4] = 32; g_gb.oam[5] = 170; g_gb.oam[6] = 0x02; g_gb.oam[7] = 0x00;
+
+    gbc_video_render_frame();
+
+    TEST_ASSERT(g_video.wsc_sprite_count == 1, "Sprite in 32px black border zone must be culled in standard mode");
+    TEST_ASSERT(g_video.wsc_sprites[0].tile == 0x01, "Only the inside sprite should be rendered");
+}
+
+static void test_screen_mode_widescreen(void) {
+    gbc_hal_reset();
+    gbc_video_set_screen_mode(GBC_SCREEN_MODE_WIDESCREEN);
+
+    TEST_ASSERT(gbc_video_get_screen_mode() == GBC_SCREEN_MODE_WIDESCREEN, "Screen mode must be widescreen");
+    TEST_ASSERT(gbc_video_get_viewport_x_offset() == 0, "Widescreen mode offset must be 0 px");
+    TEST_ASSERT(gbc_video_get_viewport_width() == 224, "Widescreen viewport width must be 224 px");
+
+    g_video.lcdc |= (GB_LCDC_ENABLE | GB_LCDC_OBJ_ENABLE);
+    g_video.lcdc &= ~GB_LCDC_OBJ_SIZE;
+
+    // Sprite at GB X=16 -> WSC X = 8 (no 32px shift)
+    g_gb.oam[0] = 32; g_gb.oam[1] = 16; g_gb.oam[2] = 0x03; g_gb.oam[3] = 0x00;
+
+    // Sprite at wide coordinate (GB X=216, actual X=208) -> Visible across the 224px display
+    g_gb.oam[4] = 32; g_gb.oam[5] = 216; g_gb.oam[6] = 0x04; g_gb.oam[7] = 0x00;
+
+    gbc_video_render_frame();
+
+    TEST_ASSERT(g_video.wsc_sprite_count == 2, "Both sprites must be visible across the full 224px widescreen");
+    TEST_ASSERT(g_video.wsc_sprites[0].x == 8, "Sprite X in widescreen has 0px offset");
+    TEST_ASSERT(g_video.wsc_sprites[1].x == 208, "Wide sprite X is rendered at coordinate 208");
+
+    // Reset back to standard mode
+    gbc_video_set_screen_mode(GBC_SCREEN_MODE_STANDARD);
+}
+
 int main(void) {
     printf("========================================\n");
     printf("   GBC -> WSC COMPATIBILITY LAYER TESTS \n");
@@ -263,6 +313,10 @@ int main(void) {
     test_window_layer();
     test_mbc1_banking();
     test_mbc5_banking();
+
+    // Screen mode tests:
+    test_screen_mode_standard_borders();
+    test_screen_mode_widescreen();
 
     printf("\nResults:\n");
     printf("  Passed: %d\n", s_tests_passed);

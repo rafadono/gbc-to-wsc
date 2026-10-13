@@ -4,6 +4,11 @@
 #include "gbc_types.h"
 #include "wsc_hardware.h"
 
+typedef enum {
+    GBC_SCREEN_MODE_STANDARD = 0,   /* 160x144 centered with 32px black borders */
+    GBC_SCREEN_MODE_WIDESCREEN = 1  /* 224x144 full native viewport */
+} gbc_screen_mode_t;
+
 typedef struct {
     uint8_t scx;
     uint8_t scy;
@@ -32,12 +37,21 @@ typedef struct {
     bool window_enabled;
     uint8_t win_x;
     uint8_t win_y;
+
+    gbc_screen_mode_t screen_mode;
+    uint8_t viewport_x_offset;
+    uint8_t viewport_width;
 } gbc_video_state_t;
 
 extern gbc_video_state_t g_video;
 
 void gbc_video_init(void);
 void gbc_video_reset(void);
+
+void gbc_video_set_screen_mode(gbc_screen_mode_t mode);
+gbc_screen_mode_t gbc_video_get_screen_mode(void);
+uint8_t gbc_video_get_viewport_x_offset(void);
+uint8_t gbc_video_get_viewport_width(void);
 
 void gbc_tile_to_wsc_2bpp(const uint8_t *gb_tile, uint8_t *wsc_tile);
 void gbc_video_mark_tile_dirty(uint16_t tile_idx);
