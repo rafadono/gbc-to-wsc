@@ -1,0 +1,3 @@
+[submodule "submodules/gb-recompiled"]
+	path = submodules/gb-recompiled
+	url = https://github.com/arcanite24/gb-recompiled
