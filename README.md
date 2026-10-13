@@ -6,9 +6,9 @@ A generic, high-performance Hardware Abstraction Layer (HAL) and translation pip
 
 ## Overview
 
-Rather than running an instruction interpreter (emulation) on the WonderSwan Color's 3.072 MHz NEC V30MZ CPU, this project targets **ahead-of-time (AOT) static recompilation** into native C code (via `arcanite24/gb-recompiled` or community source decompilations). 
+Instead of running guest code dynamically on the WonderSwan Color's 3.072 MHz NEC V30MZ CPU, this project targets **ahead-of-time (AOT) static recompilation** and source decompilation into native C code (via `arcanite24/gb-recompiled` or community source decompilations). 
 
-The `gbc_wsc_hal` bridges the recompiled game logic directly to native WonderSwan Color hardware registers and memory.
+The `gbc_wsc_hal` bridges the recompiled and decompiled game logic directly to native WonderSwan Color hardware registers and memory.
 
 ```
 +-------------------------------------------------------+
@@ -59,7 +59,7 @@ WS/
 │   ├── gbc_types.h             # GB register definitions, flags, and constants
 │   ├── gbc_memory.h            # Memory bus, MBC1/MBC5 banking, and RAM state
 │   ├── gbc_video.h             # PPU scanner, tile translation, sprites, and palettes
-│   ├── gbc_input.h             # Joypad polling and register $FF00 emulation
+│   ├── gbc_input.h             # Joypad polling and register $FF00 key matrix
 │   ├── gbc_hal.h               # Core lifecycle, timers, and 60 Hz / 75 Hz sync
 │   └── wsc_hardware.h          # WonderSwan Color ports and color conversion
 ├── src/
@@ -126,7 +126,7 @@ Or via Makefile:
 make game ROM=roms/tetris.gb
 ```
 
-3. The generated WonderSwan Color executable will appear in `dist/<game_title>.wsc`, ready to be loaded into **Mesen 2**, **Mednafen**, or flashed to physical hardware.
+3. The generated WonderSwan Color executable will appear in `dist/<game_title>.wsc`, ready to be loaded into desktop test environments (Mesen 2, Mednafen) or flashed to physical hardware.
 
 ---
 
