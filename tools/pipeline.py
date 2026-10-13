@@ -17,11 +17,15 @@ TOOLS_BIN_DIR = os.path.join(BASE_DIR, "tools", "bin")
 GBRECOMP_RELEASE_URL_WIN = "https://github.com/arcanite24/gb-recompiled/releases/latest/download/gb-recompiled-windows-x64.zip"
 
 def get_gbrecomp_executable():
-    # 1. Check local tools/bin
+    # 1. Check local tools/bin and subdirectories
     ext = ".exe" if platform.system() == "Windows" else ""
     local_bin = os.path.join(TOOLS_BIN_DIR, f"gbrecomp{ext}")
     if os.path.isfile(local_bin):
         return local_bin
+
+    sub_bin = os.path.join(TOOLS_BIN_DIR, "gb-recompiled-windows", f"gbrecomp{ext}")
+    if os.path.isfile(sub_bin):
+        return sub_bin
 
     # 2. Check system PATH
     which_bin = shutil.which("gbrecomp")
