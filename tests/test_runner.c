@@ -294,6 +294,26 @@ static void test_screen_mode_widescreen(void) {
     gbc_video_set_screen_mode(GBC_SCREEN_MODE_STANDARD);
 }
 
+static void test_hot_toggle_screen_mode_button(void) {
+    gbc_hal_reset();
+    gbc_input_init();
+    gbc_video_set_screen_mode(GBC_SCREEN_MODE_STANDARD);
+
+    TEST_ASSERT(gbc_video_get_screen_mode() == GBC_SCREEN_MODE_STANDARD, "Initial mode is standard");
+
+    // Press Y4 button
+    gbc_input_process_wsc_keys(WSC_KEY_Y4);
+    TEST_ASSERT(gbc_video_get_screen_mode() == GBC_SCREEN_MODE_WIDESCREEN, "Pressing Y4 must toggle mode to widescreen");
+
+    // Release Y4 (mode remains widescreen)
+    gbc_input_process_wsc_keys(0);
+    TEST_ASSERT(gbc_video_get_screen_mode() == GBC_SCREEN_MODE_WIDESCREEN, "Releasing Y4 preserves widescreen mode");
+
+    // Press Y4 again
+    gbc_input_process_wsc_keys(WSC_KEY_Y4);
+    TEST_ASSERT(gbc_video_get_screen_mode() == GBC_SCREEN_MODE_STANDARD, "Pressing Y4 again toggles back to standard");
+}
+
 int main(void) {
     printf("========================================\n");
     printf("   GBC -> WSC COMPATIBILITY LAYER TESTS \n");
@@ -317,6 +337,7 @@ int main(void) {
     // Screen mode tests:
     test_screen_mode_standard_borders();
     test_screen_mode_widescreen();
+    test_hot_toggle_screen_mode_button();
 
     printf("\nResults:\n");
     printf("  Passed: %d\n", s_tests_passed);

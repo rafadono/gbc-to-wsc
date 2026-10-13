@@ -44,6 +44,7 @@ The `gbc_wsc_hal` bridges the recompiled and decompiled game logic directly to n
 | **Sprites** | 40 OAM sprites (8x8 or 8x16) | 128 hardware sprites (8x8) | 8x8 sprites mapped 1:1; 8x16 sprites split into two 8x8 sprites. |
 | **Window** | 1 Window layer (`WX`, `WY`) | `Screen 2` hardware tilemap | Projected directly onto independent `Screen 2`. |
 | **Color** | 15-bit BGR555 | 12-bit RGB444 (4096 colors) | Real-time bitshift downsampling: `r >> 1`, `g >> 1`, `b >> 1`. |
+| **Input** | 8 buttons (D-Pad, A, B, Select, Start) | 11 buttons (X1-X4, Y1-Y4, A, B, Start) | Active-low matrix ($FF00). Y1 maps to Select. Y4 is assigned as a dedicated hot-toggle button to switch between 160x144 (32 px borders) and 224x144 widescreen on the fly. |
 | **Mappers** | MBC1 (up to 2 MB), MBC5 (up to 8 MB) | Cartridge ROM Banks | Auto-detected from header byte `$0147` with bank mirroring. |
 
 ---
@@ -105,7 +106,7 @@ Expected output:
 ========================================
 
 Results:
-  Passed: 57
+  Passed: 61
   Failed: 0
 
 ALL TESTS PASSED SUCCESSFULLY (Hito 1, 2 & 4 Core verified).
