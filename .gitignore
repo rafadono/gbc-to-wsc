@@ -1,0 +1,22 @@
+# Binaries & build artifacts
+*.exe
+*.o
+*.wsc
+build/
+bin/
+dist/
+test_runner
+
+# ROM files & save data (Never commit copyrighted game files)
+roms/*.gb
+roms/*.gbc
+roms/*.bin
+roms/*.sav
+!roms/.gitkeep
+!roms/README.md
+
+# Editor & OS files
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
