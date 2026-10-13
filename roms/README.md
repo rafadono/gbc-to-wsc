@@ -1,12 +1,13 @@
 # ROMs Directory
 
-Coloca aqui tus archivos ROM legales de Game Boy (`.gb`) o Game Boy Color (`.gbc`).
+Place your legally obtained Game Boy (`.gb`) or Game Boy Color (`.gbc`) ROM files in this directory.
 
-Ejemplos admitidos:
+Supported examples:
 * `tetris.gb`
 * `tetris_dx.gbc`
 * `sml.gb` (Super Mario Land)
 * `sml2.gb` (Super Mario Land 2)
 * `metroid2.gb`
+* `zelda_ladx.gbc` (The Legend of Zelda: Link's Awakening DX)
 
-Nota: Este directorio ignora deliberadamente los archivos binarios (.gb, .gbc, .sav) en Git por motivos legales de preservacion y derechos de autor.
+Note: This directory intentionally ignores binary files (`.gb`, `.gbc`, `.sav`, `.bin`) via `.gitignore` for legal compliance and copyright preservation.

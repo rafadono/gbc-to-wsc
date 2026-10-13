@@ -43,7 +43,7 @@ def ensure_gbrecomp():
     os.makedirs(TOOLS_BIN_DIR, exist_ok=True)
     if platform.system() == "Windows":
         zip_path = os.path.join(TOOLS_BIN_DIR, "gb-recompiled.zip")
-        print("gbrecomp no encontrado localmente. Descargando binario oficial de arcanite24/gb-recompiled...")
+        print("gbrecomp not found locally. Downloading official binary from arcanite24/gb-recompiled...")
         try:
             urllib.request.urlretrieve(GBRECOMP_RELEASE_URL_WIN, zip_path)
             with zipfile.ZipFile(zip_path, 'r') as zip_ref:
@@ -54,56 +54,56 @@ def ensure_gbrecomp():
             ext = ".exe"
             target_exe = os.path.join(TOOLS_BIN_DIR, f"gbrecomp{ext}")
             if os.path.isfile(target_exe):
-                print(f"Instalado exitosamente en {target_exe}")
+                print(f"Successfully installed at {target_exe}")
                 return target_exe
         except Exception as e:
-            print(f"Aviso: No se pudo descargar el binario precompilado ({e}).")
-            print("Puedes compilarlo usando CMake en submodules/gb-recompiled.")
+            print(f"Notice: Could not download prebuilt binary ({e}).")
+            print("You can build it using CMake in submodules/gb-recompiled.")
     
     return None
 
 def run_pipeline(rom_path):
     if not os.path.isfile(rom_path):
-        print(f"Error: No se encontro el archivo ROM en '{rom_path}'")
+        print(f"Error: ROM file not found at '{rom_path}'")
         return False
 
-    print(f"--- Iniciando Pipeline para: {os.path.basename(rom_path)} ---")
+    print(f"--- Starting Pipeline for: {os.path.basename(rom_path)} ---")
     
-    # 1. Parsear cabecera usando el bridge
+    # 1. Parse header using bridge
     sys.path.append(os.path.join(BASE_DIR, "tools"))
     import gb_recomp_bridge
     with open(rom_path, "rb") as f:
         rom_data = f.read()
 
     info = gb_recomp_bridge.parse_gb_header(rom_data)
-    print(f"Juego: {info['title']} | Tipo: {info['cart_type']} | CGB: {info['is_cgb']}")
+    print(f"Game: {info['title']} | Type: {info['cart_type']} | CGB: {info['is_cgb']}")
 
-    # 2. Asegurar gbrecomp
+    # 2. Ensure gbrecomp
     gbrecomp_exe = ensure_gbrecomp()
     game_slug = "".join(c if c.isalnum() else "_" for c in info['title'].lower()) or "game"
     recomp_out_dir = os.path.join(BASE_DIR, "build", "recompiled", game_slug)
     os.makedirs(recomp_out_dir, exist_ok=True)
 
     if gbrecomp_exe:
-        print(f"Ejecutando recompilacion estatica con {os.path.basename(gbrecomp_exe)}...")
+        print(f"Executing static recompilation using {os.path.basename(gbrecomp_exe)}...")
         cmd = [gbrecomp_exe, rom_path, "-o", recomp_out_dir]
         try:
             res = subprocess.run(cmd, capture_output=True, text=True)
             if res.returncode == 0:
-                print("Recompilacion completada con exito.")
+                print("Static recompilation completed successfully.")
             else:
-                print(f"Salida del recompilador:\n{res.stdout}\n{res.stderr}")
+                print(f"Recompiler output:\n{res.stdout}\n{res.stderr}")
         except Exception as ex:
-            print(f"Error al ejecutar gbrecomp: {ex}")
+            print(f"Error running gbrecomp: {ex}")
     else:
-        print("Aviso: Ejecutable gbrecomp no disponible aun. Se generara el contenedor bare-metal directamente.")
+        print("Notice: gbrecomp executable not found. Proceeding with bare-metal container generation directly.")
 
-    # 3. Empaquetar y construir ROM WSC
+    # 3. Package and build WSC ROM
     dist_dir = os.path.join(BASE_DIR, "dist")
     os.makedirs(dist_dir, exist_ok=True)
     wsc_output = os.path.join(dist_dir, f"{game_slug}.wsc")
 
-    # Extraer tiles para la ROM de salida
+    # Extract tiles for target ROM
     tiles_data = bytearray()
     if len(rom_data) >= 0x8000:
         for t in range(min(256, len(rom_data) // 16)):
@@ -112,16 +112,16 @@ def run_pipeline(rom_path):
                 tiles_data.extend(gb_recomp_bridge.convert_gb_tile_to_wsc_2bpp(tile_chunk))
 
     size, csum = gb_recomp_bridge.build_wsc_rom(wsc_output, tiles_data=tiles_data, title=info['title'])
-    print(f"\nExito: ROM WonderSwan Color generada:")
-    print(f"  Ruta: {wsc_output}")
-    print(f"  Tamano: {size} bytes")
+    print(f"\nSuccess: WonderSwan Color ROM generated:")
+    print(f"  Path: {wsc_output}")
+    print(f"  Size: {size} bytes")
     print(f"  Checksum: 0x{csum:04X}")
-    print("Listo para probar en Mesen 2 o en hardware real.")
+    print("Ready to run in Mesen 2 or on physical hardware.")
     return True
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Uso: python tools/pipeline.py <ruta_a_rom.gb|.gbc>")
+        print("Usage: python tools/pipeline.py <path_to_rom.gb|.gbc>")
         sys.exit(1)
 
     success = run_pipeline(sys.argv[1])
