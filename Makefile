@@ -24,6 +24,12 @@ test: $(TEST_TARGET)
 
 lib: $(CORE_LIB)
 
+test-sml:
+	@$(MAKE) -C ports/super_marioland test
+
+patch-sml:
+	@python ports/super_marioland/apply_widescreen_patch.py
+
 submodule-update:
 	git submodule update --init --recursive
 

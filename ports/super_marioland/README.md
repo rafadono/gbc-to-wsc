@@ -61,3 +61,20 @@ python tools/test_wsc.py dist/super_marioland.wsc --validate
 # Interactive playtest
 python tools/test_wsc.py dist/super_marioland.wsc
 ```
+
+### 4. Applying and Testing the Widescreen Patch
+
+Apply the widescreen patch to the decompiled C source files:
+```bash
+python ports/super_marioland/apply_widescreen_patch.py
+```
+
+Run the dedicated Super Mario Land widescreen test suite (13 tests):
+```bash
+make -C ports/super_marioland test
+```
+
+To revert back to vanilla camera values:
+```bash
+python ports/super_marioland/apply_widescreen_patch.py --revert
+```
