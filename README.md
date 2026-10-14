@@ -1,5 +1,7 @@
 # GBC to WonderSwan Color Compatibility Layer (HAL)
 
+[![Support on Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20Project-FF5E5B?style=flat&logo=kofi&logoColor=white)](https://ko-fi.com/rafadono)
+
 A generic, high-performance Hardware Abstraction Layer (HAL) and translation pipeline designed to port statically recompiled and decompiled Game Boy (GB) and Game Boy Color (GBC) games to the Bandai WonderSwan Color (WSC).
 
 ---
@@ -161,6 +163,14 @@ Or via Makefile:
 make run ROM=dist/super_marioland.wsc
 make validate ROM=dist/super_marioland.wsc
 ```
+
+---
+
+## Support
+
+If you enjoy the project and want to support its ongoing development:
+
+[![Support on Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20Project-FF5E5B?style=for-the-badge&logo=kofi&logoColor=white)](https://ko-fi.com/rafadono)
 
 ---
 
