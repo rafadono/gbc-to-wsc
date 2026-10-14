@@ -1,6 +1,13 @@
 # Binaries & build artifacts
 *.exe
 *.o
+*.a
+*.lib
+*.obj
+*.pdb
+*.dll
+*.so
+*.dylib
 *.wsc
 build/
 bin/
