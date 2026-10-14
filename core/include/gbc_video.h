@@ -99,6 +99,7 @@ void gbc_video_step_hdma_hblank(void);
 void gbc_video_cycle_dmg_palette(void);
 void gbc_video_set_dmg_palette_preset(dmg_palette_preset_t preset);
 dmg_palette_preset_t gbc_video_get_dmg_palette_preset(void);
+const char *gbc_video_get_dmg_palette_name(dmg_palette_preset_t preset);
 
 void gbc_video_set_orientation(gbc_orientation_t orientation);
 gbc_orientation_t gbc_video_get_orientation(void);

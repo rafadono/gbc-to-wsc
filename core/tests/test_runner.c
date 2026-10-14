@@ -477,16 +477,28 @@ static void test_dmg_palette_presets_and_cycling(void) {
     // Initial preset is pocket grayscale
     gbc_video_set_dmg_palette_preset(DMG_PALETTE_POCKET_GRAYSCALE);
     TEST_ASSERT(g_video.wsc_bg_palettes[0][0] == 0x0FFF, "Pocket color 0 must be 0x0FFF");
+    TEST_ASSERT(strcmp(gbc_video_get_dmg_palette_name(DMG_PALETTE_POCKET_GRAYSCALE), "Game Boy Pocket Grayscale") == 0, "Pocket name mismatch");
 
-    // Cycle palette via Y2 button
+    // Cycle palette via Y2 button -> advances to Game Boy Light Teal
     gbc_input_process_wsc_keys(WSC_KEY_Y2);
-    TEST_ASSERT(gbc_video_get_dmg_palette_preset() == DMG_PALETTE_WARM_SEPIA, "Cycle must advance to warm sepia");
-    TEST_ASSERT(g_video.wsc_bg_palettes[0][0] == 0x0FDE, "Warm sepia color 0 must be 0x0FDE");
+    TEST_ASSERT(gbc_video_get_dmg_palette_preset() == DMG_PALETTE_LIGHT_TEAL, "Cycle must advance to Game Boy Light teal");
+    TEST_ASSERT(g_video.wsc_bg_palettes[0][0] == 0x0AFE, "Light teal color 0 must be 0x0AFE");
 
-    // Cycle again
+    // Cycle again -> advances to Virtual Boy Crimson
     gbc_input_process_wsc_keys(0);
     gbc_input_process_wsc_keys(WSC_KEY_Y2);
-    TEST_ASSERT(gbc_video_get_dmg_palette_preset() == DMG_PALETTE_COOL_BLUE, "Cycle must advance to cool blue");
+    TEST_ASSERT(gbc_video_get_dmg_palette_preset() == DMG_PALETTE_VIRTUAL_BOY, "Cycle must advance to Virtual Boy crimson");
+    TEST_ASSERT(g_video.wsc_bg_palettes[0][0] == 0x0F22, "Virtual boy color 0 must be 0x0F22");
+
+    // Test GBC Boot ROM preset direct selection
+    gbc_video_set_dmg_palette_preset(DMG_PALETTE_GBC_BLUE);
+    TEST_ASSERT(g_video.wsc_bg_palettes[0][2] == 0x025C, "GBC Blue color 2 must match");
+    TEST_ASSERT(strcmp(gbc_video_get_dmg_palette_name(DMG_PALETTE_GBC_BLUE), "GBC Blue (Left)") == 0, "GBC Blue name mismatch");
+
+    // Test Community preset selection
+    gbc_video_set_dmg_palette_preset(DMG_PALETTE_CYBERPUNK_NEON);
+    TEST_ASSERT(g_video.wsc_bg_palettes[0][0] == 0x00FF, "Cyberpunk neon color 0 must be cyan");
+    TEST_ASSERT(strcmp(gbc_video_get_dmg_palette_name(DMG_PALETTE_CYBERPUNK_NEON), "Cyberpunk Neon") == 0, "Cyberpunk name mismatch");
 }
 
 static void test_tate_orientation_and_input(void) {

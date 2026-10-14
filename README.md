@@ -93,23 +93,59 @@ python tools/new_port.py "roms/Metroid II (World).gb" ../metroid2-wsc --dmg-pale
 
 Available CLI flags:
 * `--widescreen`: Enables the real-time widescreen toggle on button `Y4`.
-* `--dmg-palettes`: Enables the 5-preset DMG palette cycler on button `Y2`.
+* `--dmg-palettes`: Enables the 27-preset DMG palette cycler on button `Y2`.
 * `--tate`: Configures Tate 90-degree vertical orientation and remapped controls.
 * `--no-enhanced-audio`: Disables harmonic waveform smoothing, enforcing strict raw pulse duty cycles.
 
 ---
 
-## Configurable Feature Flags
+## Configurable Feature Flags & Palettes
 
 All enhancements in `gbc-to-wsc` are modular and can be individually enabled or disabled via C API or `config.json`:
 
 ```c
 /* In your game's hooks_init callback: */
 gbc_features_set_widescreen_toggle(false); // Disables Y4 widescreen toggle (keeps strict 160x144)
-gbc_features_set_dmg_palette_cycle(true);  // Enables Y2 DMG palette cycler
+gbc_features_set_dmg_palette_cycle(true);  // Enables Y2 DMG palette cycler across 27 presets
 gbc_features_set_tate_mode(false);         // Disables Tate mode (landscape orientation)
 gbc_features_set_enhanced_audio(true);     // Enables WonderSwan acoustic harmonic smoothing
 ```
+
+### DMG Palette Catalog (27 Presets)
+
+The real-time palette engine (cycled with `Y2` on monochrome titles or selected with `gbc_video_set_dmg_palette_preset()`) provides 27 built-in presets:
+
+1. **Classic Hardware**:
+   * `DMG_PALETTE_ORIGINAL_GREEN`: Original 1989 Game Boy DMG-01 pea-soup green LCD matrix.
+   * `DMG_PALETTE_POCKET_GRAYSCALE`: Game Boy Pocket crisp neutral grayscale.
+   * `DMG_PALETTE_LIGHT_TEAL`: Game Boy Light electroluminescent teal/aqua glow.
+   * `DMG_PALETTE_VIRTUAL_BOY`: Virtual Boy deep crimson LED on pure black.
+2. **Official GBC Boot ROM Shortcuts**:
+   * `DMG_PALETTE_GBC_BROWN` (Up): Warm ochre brown.
+   * `DMG_PALETTE_GBC_RED` (Up+A): Vivid crimson and salmon red.
+   * `DMG_PALETTE_GBC_DARK_BROWN` (Up+B): Dark amber brown.
+   * `DMG_PALETTE_GBC_PASTEL` (Down): Pastel sky blue and soft orange mix.
+   * `DMG_PALETTE_GBC_ORANGE` (Down+A): Warm amber orange and gold.
+   * `DMG_PALETTE_GBC_YELLOW` (Down+B): Bright golden yellow and olive.
+   * `DMG_PALETTE_GBC_BLUE` (Left): Vibrant royal blue and sky blue.
+   * `DMG_PALETTE_GBC_DARK_BLUE` (Left+A): Midnight deep navy and steel blue.
+   * `DMG_PALETTE_GBC_GRAYSCALE` (Left+B): GBC high-contrast grayscale.
+   * `DMG_PALETTE_GBC_GREEN` (Right): Emerald green and light lime.
+   * `DMG_PALETTE_GBC_DARK_GREEN` (Right+A): Forest green and deep moss.
+   * `DMG_PALETTE_GBC_INVERTED` (Right+B): Inverted negative monochrome.
+3. **Super Game Boy (SGB)**:
+   * `DMG_PALETTE_SGB_1A`: Classic SGB olive-gold.
+   * `DMG_PALETTE_SGB_2A`: SGB fiery sunset orange-red.
+   * `DMG_PALETTE_SGB_4G`: SGB soft pastel candy.
+4. **Community Favorites (Lospec, RetroArch, Shaders)**:
+   * `DMG_PALETTE_WARM_SEPIA`: Vintage photographic sepia tone.
+   * `DMG_PALETTE_COOL_BLUE`: High-readability iced blue gradient.
+   * `DMG_PALETTE_CRT_AMBER`: Classic amber phosphor terminal CRT monitor.
+   * `DMG_PALETTE_CRT_GREEN`: Matrix phosphor green terminal monitor.
+   * `DMG_PALETTE_CYBERPUNK_NEON`: Synthwave neon cyan, hot magenta, and midnight purple.
+   * `DMG_PALETTE_FROSTBITE`: Glacial frostbite arctic blue.
+   * `DMG_PALETTE_CRIMSON_NIGHT`: Gothic blood red and black.
+   * `DMG_PALETTE_WSC_VIBRANT`: Tailored for WonderSwan Color reflective FSTN/TFT display.
 
 ---
 

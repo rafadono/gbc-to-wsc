@@ -138,17 +138,55 @@ def test_window_screen2_clipping():
 
 def test_dmg_palette_presets():
     presets = [
-        [0x08E2, 0x06A2, 0x0482, 0x0140], # Green
-        [0x0FFF, 0x0AAA, 0x0555, 0x0000], # Pocket
-        [0x0FDE, 0x0CBA, 0x0864, 0x0321], # Sepia
-        [0x0DEF, 0x08BC, 0x0479, 0x0124], # Cool blue
+        # Hardware Clasico (4)
+        [0x08E2, 0x06A2, 0x0482, 0x0140], # DMG-01 Original Green
+        [0x0FFF, 0x0AAA, 0x0555, 0x0000], # Pocket Grayscale
+        [0x0AFE, 0x04CB, 0x0277, 0x0033], # Light Teal
+        [0x0F22, 0x0B00, 0x0600, 0x0000], # Virtual Boy Crimson
+
+        # GBC Boot ROM (12)
+        [0x0FFA, 0x0DA5, 0x0852, 0x0000], # GBC Brown
+        [0x0FFF, 0x0F88, 0x0933, 0x0000], # GBC Red
+        [0x0FFB, 0x0C70, 0x0730, 0x0000], # GBC Dark Brown
+        [0x0FFF, 0x0FB5, 0x05BF, 0x0000], # GBC Pastel
+        [0x0FFF, 0x0FD0, 0x0C50, 0x0000], # GBC Orange
+        [0x0FF7, 0x0FB0, 0x0940, 0x0000], # GBC Yellow
+        [0x0FFF, 0x08BF, 0x025C, 0x0000], # GBC Blue
+        [0x0CDF, 0x058C, 0x0238, 0x0002], # GBC Dark Blue
+        [0x0FFF, 0x0AAA, 0x0555, 0x0000], # GBC Grayscale
+        [0x0FFF, 0x08F8, 0x02A2, 0x0000], # GBC Green
+        [0x0AFA, 0x05C5, 0x0272, 0x0020], # GBC Dark Green
+        [0x0000, 0x0555, 0x0AAA, 0x0FFF], # GBC Inverted
+
+        # Super Game Boy (3)
+        [0x0FFA, 0x08C8, 0x0486, 0x0133], # SGB 1A
+        [0x0FFA, 0x0F84, 0x0923, 0x0212], # SGB 2A
+        [0x0FEE, 0x0E9A, 0x0958, 0x0324], # SGB 4G
+
+        # Comunidad (8)
+        [0x0FDE, 0x0CBA, 0x0864, 0x0321], # Warm Sepia
+        [0x0DEF, 0x08BC, 0x0479, 0x0124], # Cool Blue
+        [0x0FB0, 0x0C70, 0x0630, 0x0000], # CRT Amber
+        [0x03F3, 0x01A1, 0x0050, 0x0000], # CRT Green
+        [0x00FF, 0x0F0A, 0x0508, 0x0102], # Cyberpunk Neon
+        [0x0EFF, 0x08BD, 0x0369, 0x0013], # Frostbite
+        [0x0FFE, 0x0C24, 0x0602, 0x0100], # Crimson Night
         [0x0FFE, 0x0BD8, 0x0697, 0x0033]  # WSC Vibrant
     ]
+    assert len(presets) == 27, f"Expected 27 presets, got {len(presets)}"
     curr = 1 # Pocket
     curr = (curr + 1) % len(presets)
     assert curr == 2, "Palette preset cycle failed"
-    assert presets[curr][0] == 0x0FDE, "Warm sepia color 0 mismatch"
-    print("PASS: DMG Palette presets and cycling")
+    assert presets[curr][0] == 0x0AFE, "Game Boy Light teal color 0 mismatch"
+
+    # GBC Blue test
+    gbc_blue = presets[10]
+    assert gbc_blue[2] == 0x025C, "GBC Blue shade 2 mismatch"
+
+    # Cyberpunk Neon test
+    cyberpunk = presets[23]
+    assert cyberpunk[0] == 0x00FF, "Cyberpunk neon cyan color mismatch"
+    print("PASS: DMG Palette presets and cycling (27 presets: Hardware, GBC Boot, SGB, Community)")
 
 def test_tate_orientation():
     # In Tate mode (vertical 90° CCW):
@@ -187,7 +225,7 @@ def test_feature_disabling():
     current_palette = 1 # Pocket
     y2_pressed = True
     if enable_dmg_palette_cycle and y2_pressed:
-        current_palette = (current_palette + 1) % 5
+        current_palette = (current_palette + 1) % 27
     assert current_palette == 1, "Disabled palette cycle should keep current preset"
     print("PASS: Feature disabling (widescreen & palette toggle flags)")
 

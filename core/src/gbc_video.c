@@ -6,11 +6,73 @@
 gbc_video_state_t g_video;
 
 static const uint16_t s_dmg_palette_presets[DMG_PALETTE_COUNT][4] = {
+    /* Hardware Clasico */
     [DMG_PALETTE_ORIGINAL_GREEN]   = { 0x08E2, 0x06A2, 0x0482, 0x0140 },
     [DMG_PALETTE_POCKET_GRAYSCALE] = { 0x0FFF, 0x0AAA, 0x0555, 0x0000 },
+    [DMG_PALETTE_LIGHT_TEAL]       = { 0x0AFE, 0x04CB, 0x0277, 0x0033 },
+    [DMG_PALETTE_VIRTUAL_BOY]      = { 0x0F22, 0x0B00, 0x0600, 0x0000 },
+
+    /* GBC Boot ROM (12 combinaciones oficiales) */
+    [DMG_PALETTE_GBC_BROWN]        = { 0x0FFA, 0x0DA5, 0x0852, 0x0000 },
+    [DMG_PALETTE_GBC_RED]          = { 0x0FFF, 0x0F88, 0x0933, 0x0000 },
+    [DMG_PALETTE_GBC_DARK_BROWN]   = { 0x0FFB, 0x0C70, 0x0730, 0x0000 },
+    [DMG_PALETTE_GBC_PASTEL]       = { 0x0FFF, 0x0FB5, 0x05BF, 0x0000 },
+    [DMG_PALETTE_GBC_ORANGE]       = { 0x0FFF, 0x0FD0, 0x0C50, 0x0000 },
+    [DMG_PALETTE_GBC_YELLOW]       = { 0x0FF7, 0x0FB0, 0x0940, 0x0000 },
+    [DMG_PALETTE_GBC_BLUE]         = { 0x0FFF, 0x08BF, 0x025C, 0x0000 },
+    [DMG_PALETTE_GBC_DARK_BLUE]    = { 0x0CDF, 0x058C, 0x0238, 0x0002 },
+    [DMG_PALETTE_GBC_GRAYSCALE]    = { 0x0FFF, 0x0AAA, 0x0555, 0x0000 },
+    [DMG_PALETTE_GBC_GREEN]        = { 0x0FFF, 0x08F8, 0x02A2, 0x0000 },
+    [DMG_PALETTE_GBC_DARK_GREEN]   = { 0x0AFA, 0x05C5, 0x0272, 0x0020 },
+    [DMG_PALETTE_GBC_INVERTED]     = { 0x0000, 0x0555, 0x0AAA, 0x0FFF },
+
+    /* Super Game Boy */
+    [DMG_PALETTE_SGB_1A]           = { 0x0FFA, 0x08C8, 0x0486, 0x0133 },
+    [DMG_PALETTE_SGB_2A]           = { 0x0FFA, 0x0F84, 0x0923, 0x0212 },
+    [DMG_PALETTE_SGB_4G]           = { 0x0FEE, 0x0E9A, 0x0958, 0x0324 },
+
+    /* Comunidad (RetroArch, Lospec, Shaders) */
     [DMG_PALETTE_WARM_SEPIA]       = { 0x0FDE, 0x0CBA, 0x0864, 0x0321 },
     [DMG_PALETTE_COOL_BLUE]        = { 0x0DEF, 0x08BC, 0x0479, 0x0124 },
+    [DMG_PALETTE_CRT_AMBER]        = { 0x0FB0, 0x0C70, 0x0630, 0x0000 },
+    [DMG_PALETTE_CRT_GREEN]        = { 0x03F3, 0x01A1, 0x0050, 0x0000 },
+    [DMG_PALETTE_CYBERPUNK_NEON]   = { 0x00FF, 0x0F0A, 0x0508, 0x0102 },
+    [DMG_PALETTE_FROSTBITE]        = { 0x0EFF, 0x08BD, 0x0369, 0x0013 },
+    [DMG_PALETTE_CRIMSON_NIGHT]    = { 0x0FFE, 0x0C24, 0x0602, 0x0100 },
     [DMG_PALETTE_WSC_VIBRANT]      = { 0x0FFE, 0x0BD8, 0x0697, 0x0033 }
+};
+
+static const char * const s_dmg_palette_names[DMG_PALETTE_COUNT] = {
+    [DMG_PALETTE_ORIGINAL_GREEN]   = "DMG-01 Original Green",
+    [DMG_PALETTE_POCKET_GRAYSCALE] = "Game Boy Pocket Grayscale",
+    [DMG_PALETTE_LIGHT_TEAL]       = "Game Boy Light Teal",
+    [DMG_PALETTE_VIRTUAL_BOY]      = "Virtual Boy Crimson",
+
+    [DMG_PALETTE_GBC_BROWN]        = "GBC Brown (Up)",
+    [DMG_PALETTE_GBC_RED]          = "GBC Red (Up+A)",
+    [DMG_PALETTE_GBC_DARK_BROWN]   = "GBC Dark Brown (Up+B)",
+    [DMG_PALETTE_GBC_PASTEL]       = "GBC Pastel (Down)",
+    [DMG_PALETTE_GBC_ORANGE]       = "GBC Orange (Down+A)",
+    [DMG_PALETTE_GBC_YELLOW]       = "GBC Yellow (Down+B)",
+    [DMG_PALETTE_GBC_BLUE]         = "GBC Blue (Left)",
+    [DMG_PALETTE_GBC_DARK_BLUE]    = "GBC Dark Blue (Left+A)",
+    [DMG_PALETTE_GBC_GRAYSCALE]    = "GBC Grayscale (Left+B)",
+    [DMG_PALETTE_GBC_GREEN]        = "GBC Green (Right)",
+    [DMG_PALETTE_GBC_DARK_GREEN]   = "GBC Dark Green (Right+A)",
+    [DMG_PALETTE_GBC_INVERTED]     = "GBC Inverted (Right+B)",
+
+    [DMG_PALETTE_SGB_1A]           = "Super Game Boy 1A",
+    [DMG_PALETTE_SGB_2A]           = "Super Game Boy 2A Sunset",
+    [DMG_PALETTE_SGB_4G]           = "Super Game Boy 4G Pastel",
+
+    [DMG_PALETTE_WARM_SEPIA]       = "Warm Sepia",
+    [DMG_PALETTE_COOL_BLUE]        = "Cool Blue",
+    [DMG_PALETTE_CRT_AMBER]        = "CRT Amber Phosphor",
+    [DMG_PALETTE_CRT_GREEN]        = "CRT Green Phosphor",
+    [DMG_PALETTE_CYBERPUNK_NEON]   = "Cyberpunk Neon",
+    [DMG_PALETTE_FROSTBITE]        = "Frostbite Glacier",
+    [DMG_PALETTE_CRIMSON_NIGHT]    = "Crimson Night",
+    [DMG_PALETTE_WSC_VIBRANT]      = "WonderSwan Color Vibrant"
 };
 
 void gbc_video_init(void) {
@@ -394,6 +456,13 @@ void gbc_video_set_dmg_palette_preset(dmg_palette_preset_t preset) {
 
 dmg_palette_preset_t gbc_video_get_dmg_palette_preset(void) {
     return g_features.current_dmg_palette;
+}
+
+const char *gbc_video_get_dmg_palette_name(dmg_palette_preset_t preset) {
+    if (preset < DMG_PALETTE_COUNT) {
+        return s_dmg_palette_names[preset];
+    }
+    return "Unknown";
 }
 
 void gbc_video_set_orientation(gbc_orientation_t orientation) {
