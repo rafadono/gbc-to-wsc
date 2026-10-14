@@ -30,7 +30,8 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           make -C core
-          ./core/test_runner.exe || ./core/test_runner
+          chmod +x core/test_runner.exe
+          ./core/test_runner.exe
 
       - name: Build Core Library and Run C Unit Tests (Windows)
         if: runner.os == 'Windows'
