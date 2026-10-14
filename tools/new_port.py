@@ -15,7 +15,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.join(BASE_DIR, "tools"))
 import gb_recomp_bridge
 
-def create_port(rom_path, output_dir, title=None, widescreen=False, dmg_palettes=None, tate=False, enhanced_audio=True, init_git=True):
+def create_port(rom_path, output_dir, title=None, widescreen=False, dmg_palettes=None, tate=False, enhanced_audio=True, smooth_camera=False, init_git=True):
     if not os.path.isfile(rom_path):
         print(f"Error: ROM file not found: {rom_path}")
         return False
@@ -53,7 +53,8 @@ def create_port(rom_path, output_dir, title=None, widescreen=False, dmg_palettes
             "widescreen_toggle": widescreen,
             "dmg_palette_cycle": dmg_palettes,
             "tate_mode": tate,
-            "enhanced_audio": enhanced_audio
+            "enhanced_audio": enhanced_audio,
+            "smooth_camera": smooth_camera
         }
     }
     with open(os.path.join(abs_output, "config.json"), "w", encoding="utf-8") as f:
@@ -84,6 +85,7 @@ void {game_slug}_hooks_init(void) {{
     gbc_features_set_dmg_palette_cycle({"true" if dmg_palettes else "false"});
     gbc_features_set_tate_mode({"true" if tate else "false"});
     gbc_features_set_enhanced_audio({"true" if enhanced_audio else "false"});
+    gbc_features_set_smooth_camera({"true" if smooth_camera else "false"});
 }}
 
 void {game_slug}_hooks_on_frame(void) {{
@@ -238,6 +240,7 @@ def main():
     parser.add_argument("--dmg-palettes", action="store_true", default=None, help="Enable Y2 DMG palette cycler")
     parser.add_argument("--tate", action="store_true", help="Enable Tate 90-degree vertical orientation")
     parser.add_argument("--no-enhanced-audio", action="store_false", dest="enhanced_audio", default=True, help="Disable enhanced audio harmonic smoothing")
+    parser.add_argument("--smooth-camera", action="store_true", help="Enable 75 fps smooth background camera interpolation")
     parser.add_argument("--no-git", action="store_false", dest="init_git", default=True, help="Skip git initialization and submodule addition")
 
     args = parser.parse_args()
@@ -249,6 +252,7 @@ def main():
         dmg_palettes=args.dmg_palettes,
         tate=args.tate,
         enhanced_audio=args.enhanced_audio,
+        smooth_camera=args.smooth_camera,
         init_git=args.init_git
     )
     sys.exit(0 if success else 1)

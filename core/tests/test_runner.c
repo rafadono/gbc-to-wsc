@@ -559,6 +559,50 @@ static void test_feature_disabling(void) {
     TEST_ASSERT(gbc_video_get_dmg_palette_preset() == DMG_PALETTE_ORIGINAL_GREEN, "Disabled palette cycle must not change preset");
 }
 
+static void test_smooth_camera_interpolation(void) {
+    gbc_hal_reset();
+
+    // 1. Disabled mode
+    gbc_features_set_smooth_camera(false);
+    TEST_ASSERT(!gbc_video_get_smooth_camera(), "Smooth camera must be disabled initially");
+
+    g_video.scx = 10;
+    gbc_video_update_camera_interpolation(false);
+    TEST_ASSERT(gbc_video_get_render_scx() == 10, "Render SCX must match SCX when disabled");
+
+    gbc_video_update_camera_interpolation(true);
+    TEST_ASSERT(gbc_video_get_render_scx() == 10, "Held frame must not interpolate when disabled");
+
+    // 2. Enabled mode: smooth scrolling (dx = +4)
+    gbc_features_set_smooth_camera(true);
+    TEST_ASSERT(gbc_video_get_smooth_camera(), "Smooth camera must be enabled");
+
+    g_video.scx = 10;
+    gbc_video_update_camera_interpolation(false);
+
+    g_video.scx = 14;
+    gbc_video_update_camera_interpolation(false);
+    TEST_ASSERT(gbc_video_get_render_scx() == 14, "Render SCX must be 14 on active frame");
+
+    // Held frame (5th frame in 4:5 cadence)
+    gbc_video_update_camera_interpolation(true);
+    TEST_ASSERT(gbc_video_get_render_scx() == 16, "Held frame must interpolate forward to 16 (14 + 4/2)");
+
+    // 3. Teleport protection (large jump > 16 px)
+    g_video.scx = 20;
+    gbc_video_update_camera_interpolation(false);
+
+    g_video.scx = 120;
+    gbc_video_update_camera_interpolation(false);
+
+    gbc_video_update_camera_interpolation(true);
+    TEST_ASSERT(gbc_video_get_render_scx() == 120, "Teleport jump (>16) must clamp to curr_scx without interpolation");
+
+    // 4. Disable again
+    gbc_features_set_smooth_camera(false);
+    TEST_ASSERT(gbc_video_get_render_scx() == 120, "Disabling must immediately revert to raw SCX");
+}
+
 int main(void) {
     printf("========================================\n");
     printf("   GBC -> WSC COMPATIBILITY LAYER TESTS \n");
@@ -597,6 +641,7 @@ int main(void) {
     test_tate_orientation_and_input();
     test_enhanced_audio_harmonics();
     test_feature_disabling();
+    test_smooth_camera_interpolation();
 
     printf("\nResults:\n");
     printf("  Passed: %d\n", s_tests_passed);

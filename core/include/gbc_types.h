@@ -155,6 +155,7 @@ typedef struct {
     bool enable_dmg_palette_cycle;
     bool enable_tate_mode;
     bool enable_enhanced_audio;
+    bool enable_smooth_camera;
     dmg_palette_preset_t current_dmg_palette;
     gbc_orientation_t orientation;
 } gbc_features_t;

@@ -9,6 +9,7 @@ void gbc_features_init_default(void) {
     g_features.enable_dmg_palette_cycle = true;
     g_features.enable_tate_mode = false;
     g_features.enable_enhanced_audio = false;
+    g_features.enable_smooth_camera = false;
     g_features.current_dmg_palette = DMG_PALETTE_POCKET_GRAYSCALE;
     g_features.orientation = GBC_ORIENTATION_HORIZONTAL;
 }
@@ -29,6 +30,11 @@ void gbc_features_set_tate_mode(bool enabled) {
 void gbc_features_set_enhanced_audio(bool enabled) {
     g_features.enable_enhanced_audio = enabled;
     gbc_audio_set_enhanced(enabled);
+}
+
+void gbc_features_set_smooth_camera(bool enabled) {
+    g_features.enable_smooth_camera = enabled;
+    gbc_video_set_smooth_camera(enabled);
 }
 
 void gbc_hal_init(const uint8_t *rom, uint32_t rom_size, uint8_t *sram, uint32_t sram_size) {
@@ -87,7 +93,13 @@ bool gbc_hal_frame_sync(void) {
     g_hal.frame_skip_counter++;
     if (g_hal.frame_skip_counter >= 5) {
         g_hal.frame_skip_counter = 0;
+        if (g_features.enable_smooth_camera) {
+            gbc_video_update_camera_interpolation(true);
+        }
         return false;
+    }
+    if (g_features.enable_smooth_camera) {
+        gbc_video_update_camera_interpolation(false);
     }
     return true;
 }

@@ -96,6 +96,7 @@ Available CLI flags:
 * `--dmg-palettes`: Enables the 27-preset DMG palette cycler on button `Y2`.
 * `--tate`: Configures Tate 90-degree vertical orientation and remapped controls.
 * `--no-enhanced-audio`: Disables harmonic waveform smoothing, enforcing strict raw pulse duty cycles.
+* `--smooth-camera`: Enables 75 fps smooth background camera interpolation on 4:5 cadence held frames.
 
 ---
 
@@ -109,6 +110,7 @@ gbc_features_set_widescreen_toggle(false); // Disables Y4 widescreen toggle (kee
 gbc_features_set_dmg_palette_cycle(true);  // Enables Y2 DMG palette cycler across 27 presets
 gbc_features_set_tate_mode(false);         // Disables Tate mode (landscape orientation)
 gbc_features_set_enhanced_audio(true);     // Enables WonderSwan acoustic harmonic smoothing
+gbc_features_set_smooth_camera(true);      // Enables 75 fps smooth background camera interpolation
 ```
 
 ### DMG Palette Catalog (27 Presets)

@@ -12,6 +12,10 @@ typedef enum {
 typedef struct {
     uint8_t scx;
     uint8_t scy;
+    uint8_t prev_scx;
+    uint8_t prev_scy;
+    uint8_t render_scx;
+    uint8_t render_scy;
     uint8_t wx;
     uint8_t wy;
     uint8_t ly;
@@ -103,5 +107,11 @@ const char *gbc_video_get_dmg_palette_name(dmg_palette_preset_t preset);
 
 void gbc_video_set_orientation(gbc_orientation_t orientation);
 gbc_orientation_t gbc_video_get_orientation(void);
+
+void gbc_video_set_smooth_camera(bool enabled);
+bool gbc_video_get_smooth_camera(void);
+void gbc_video_update_camera_interpolation(bool is_held_frame);
+uint8_t gbc_video_get_render_scx(void);
+uint8_t gbc_video_get_render_scy(void);
 
 #endif

@@ -30,5 +30,6 @@ void gbc_features_set_widescreen_toggle(bool enabled);
 void gbc_features_set_dmg_palette_cycle(bool enabled);
 void gbc_features_set_tate_mode(bool enabled);
 void gbc_features_set_enhanced_audio(bool enabled);
+void gbc_features_set_smooth_camera(bool enabled);
 
 #endif

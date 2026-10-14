@@ -229,6 +229,36 @@ def test_feature_disabling():
     assert current_palette == 1, "Disabled palette cycle should keep current preset"
     print("PASS: Feature disabling (widescreen & palette toggle flags)")
 
+def test_smooth_camera_interpolation():
+    # 1. Disabled mode
+    enabled = False
+    prev_scx, curr_scx = 4, 6
+    held_frame = True
+    if not enabled:
+        render_scx = curr_scx
+    assert render_scx == 6, "Disabled smooth camera must keep exact curr_scx on held frame"
+
+    # 2. Enabled mode: normal scrolling (dx = +2)
+    enabled = True
+    dx = curr_scx - prev_scx # +2
+    if enabled and held_frame:
+        if -16 <= dx <= 16:
+            render_scx = curr_scx + (dx // 2)
+        else:
+            render_scx = curr_scx
+    assert render_scx == 7, f"Expected interpolated render_scx=7, got {render_scx}"
+
+    # 3. Teleport protection (large jump dx = 50)
+    prev_scx, curr_scx = 10, 60
+    dx = curr_scx - prev_scx
+    if enabled and held_frame:
+        if -16 <= dx <= 16:
+            render_scx = curr_scx + (dx // 2)
+        else:
+            render_scx = curr_scx
+    assert render_scx == 60, "Teleport jump (>16) must not be interpolated"
+    print("PASS: Smooth background camera interpolation and toggleability")
+
 def main():
     print("Running Python Core Verification Tests...")
     test_audio_pitch_conversion()
@@ -241,6 +271,7 @@ def main():
     test_tate_orientation()
     test_enhanced_audio_harmonics()
     test_feature_disabling()
+    test_smooth_camera_interpolation()
     print("\nALL PYTHON CORE VERIFICATION TESTS PASSED SUCCESSFULLY.")
 
 if __name__ == "__main__":

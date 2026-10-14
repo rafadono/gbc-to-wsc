@@ -87,6 +87,7 @@ All runtime enhancements are modular and can be individually disabled:
 * `gbc_features_set_dmg_palette_cycle(bool)`: Enables or disables `Y2` DMG palette cycling.
 * `gbc_features_set_tate_mode(bool)`: Toggles 90-degree Tate vertical mode.
 * `gbc_features_set_enhanced_audio(bool)`: Toggles acoustic harmonic waveform smoothing.
+* `gbc_features_set_smooth_camera(bool)`: Toggles 75 fps smooth background camera interpolation.
 
 ### 6. Frame Pacing and Timers (`gbc_hal.c`, `gbc_hal.h`)
 * **4:5 Cadence (Pacing)**: Compensates for the frequency difference between Game Boy (59.73 Hz) and WonderSwan Color (75.47 Hz). On 4 out of 5 hardware scans, the game logic and VBlank interrupt advance; on the 5th scan, game state is held. Resulting effective speed is 60.37 Hz (~1.0% from original, preserving physics and music tempo).
