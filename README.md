@@ -20,10 +20,12 @@ The `gbc_wsc_hal` bridges the recompiled and decompiled game logic directly to n
                            v
 +-------------------------------------------------------+
 |         GBC to WSC COMPATIBILITY LAYER (HAL)          |
-|  - Memory & Banking Bus ($0000 - $FFFF, MBC1, MBC5)   |
-|  - PPU Translator (2BPP Bitplane Transpose, Palettes) |
+|  - Memory & Mappers (MBC1, MBC2, MBC3+RTC, MBC5)      |
+|  - PPU & CGB HDMA (General Purpose & HBlank DMA)      |
+|  - Palettes (DMG & CGB BGR555 -> WSC RGB444)          |
 |  - Sprites (8x8 & 8x16 OAM -> 128 WSC Sprites)        |
-|  - Window Layer (GB Window -> WSC Screen 2)           |
+|  - Window Layer (GB Window -> WSC Screen 2 Clipping)  |
+|  - Audio Engine (APU 4-Ch -> WSC Sound Ports $80-$9E) |
 |  - Input Polling ($FF00 Active-Low Key Matrix)        |
 |  - Frame Pacing (4:5 Ratio: 59.7 Hz to 75.4 Hz)       |
 +-------------------------------------------------------+
@@ -44,10 +46,12 @@ The `gbc_wsc_hal` bridges the recompiled and decompiled game logic directly to n
 | **Resolution** | 160 x 144 @ 59.7 Hz | 224 x 144 @ 75.4 Hz | Exact 144p vertical match. Dual screen mode support:<br>- `STANDARD`: 160x144 centered with 32 px black borders.<br>- `WIDESCREEN`: 224x144 full-width for decompiled widescreen ports. |
 | **Tile Format** | 2BPP Interleaved (2 bytes per row) | 2BPP Planar (8 bytes plane 0, 8 bytes plane 1) | Real-time byte transpose de-interleaver. |
 | **Sprites** | 40 OAM sprites (8x8 or 8x16) | 128 hardware sprites (8x8) | 8x8 sprites mapped 1:1; 8x16 sprites split into two 8x8 sprites. |
-| **Window** | 1 Window layer (`WX`, `WY`) | `Screen 2` hardware tilemap | Projected directly onto independent `Screen 2`. |
-| **Color** | 15-bit BGR555 | 12-bit RGB444 (4096 colors) | Real-time bitshift downsampling: `r >> 1`, `g >> 1`, `b >> 1`. |
+| **Window** | 1 Window layer (`WX`, `WY`) | `Screen 2` hardware tilemap | Projected directly onto independent `Screen 2` with hardware clipping (`0x30 - 0x33`). |
+| **Color** | 15-bit BGR555 | 12-bit RGB444 (4096 colors) | Real-time bitshift downsampling: `r >> 1`, `g >> 1`, `b >> 1` via `BCPS`/`BCPD` and `OCPS`/`OCPD`. |
+| **HDMA** | General Purpose & HBlank DMA (`HDMA1-5`) | Block Memory Copy | 16 bytes per HBlank scanline or full burst copy to VRAM bank 0/1. |
+| **Audio** | 4-channel APU (2 Pulse, 1 Wave, 1 Noise) | 4-channel Sound Generator | Frequency scaling, volume packing, Wave RAM sync, and noise LFSR mapping. |
 | **Input** | 8 buttons (D-Pad, A, B, Select, Start) | 11 buttons (X1-X4, Y1-Y4, A, B, Start) | Active-low matrix ($FF00). Y1 maps to Select. Y4 is assigned as a dedicated hot-toggle button to switch between 160x144 (32 px borders) and 224x144 widescreen on the fly. |
-| **Mappers** | MBC1 (up to 2 MB), MBC5 (up to 8 MB) | Cartridge ROM Banks | Auto-detected from header byte `$0147` with bank mirroring. |
+| **Mappers** | MBC1 (2 MB), MBC2 (256 KB), MBC3+RTC (2 MB), MBC5 (8 MB) | Cartridge ROM Banks | Auto-detected from header byte `$0147` with bank mirroring and RTC latching. |
 
 ---
 
@@ -56,9 +60,9 @@ The `gbc_wsc_hal` bridges the recompiled and decompiled game logic directly to n
 ```
 gbc-to-wsc/
 ├── core/                       # Shared GBC -> WonderSwan Color HAL
-│   ├── include/                # gbc_types.h, gbc_memory.h, gbc_video.h, gbc_input.h...
-│   ├── src/                    # gbc_memory.c, gbc_video.c, gbc_input.c, gbc_hal.c
-│   ├── tests/                  # Hardware abstraction unit tests (61 tests)
+│   ├── include/                # gbc_types.h, gbc_memory.h, gbc_video.h, gbc_audio.h...
+│   ├── src/                    # gbc_memory.c, gbc_video.c, gbc_audio.c, gbc_input.c, gbc_hal.c
+│   ├── tests/                  # Hardware abstraction unit tests
 │   ├── Makefile                # Core library (libgbc_wsc.a) and test targets
 │   └── README.md               # Dedicated HAL technical documentation
 ├── tools/                      # Build pipeline, packaging, and test runners
@@ -66,6 +70,7 @@ gbc-to-wsc/
 │   ├── runner/                 # Desktop test runner drop folder (mednafen, Mesen)
 │   ├── gb_recomp_bridge.py     # Header validation and WSC cartridge builder
 │   ├── pipeline.py             # End-to-end automation pipeline script
+│   ├── test_core.py            # Core subsystems validation test harness
 │   └── test_wsc.py             # Desktop test runner and validation script
 ├── roms/                       # Untracked ROM directory (BYOR pattern)
 │   ├── .gitignore              # Ignores copyrighted binaries (*.gb, *.gbc)

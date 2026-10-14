@@ -2,7 +2,7 @@ CC ?= gcc
 AR ?= ar
 CFLAGS = -Wall -Wextra -O2 -Icore/include
 
-CORE_SRC = core/src/gbc_memory.c core/src/gbc_video.c core/src/gbc_input.c core/src/gbc_hal.c
+CORE_SRC = core/src/gbc_memory.c core/src/gbc_video.c core/src/gbc_input.c core/src/gbc_audio.c core/src/gbc_hal.c
 CORE_OBJ = $(CORE_SRC:.c=.o)
 TEST_SRC = core/tests/test_runner.c
 TEST_TARGET = test_runner.exe

@@ -18,6 +18,8 @@ void gbc_video_init(void) {
     g_video.bgp  = 0xFC;
     g_video.obp0 = 0xFF;
     g_video.obp1 = 0xFF;
+    g_video.hdma5 = 0xFF;
+    g_video.wsc_disp_ctrl = WSC_DISP_CTRL_SCR1_ON | WSC_DISP_CTRL_SPR_ON;
     g_video.vram_dirty = true;
     memset(g_video.tile_dirty, 1, sizeof(g_video.tile_dirty));
 
@@ -88,7 +90,9 @@ void gbc_video_update_palettes(void) {
 void gbc_video_step_scanline(void) {
     g_video.ly++;
 
-    if (g_video.ly == 144) {
+    if (g_video.ly < 144) {
+        gbc_video_step_hdma_hblank();
+    } else if (g_video.ly == 144) {
         g_video.stat = (g_video.stat & ~GB_STAT_MODE_MASK) | 0x01;
         gbc_hal_request_interrupt(GB_INT_VBLANK);
         if (g_video.stat & GB_STAT_VBLANK_INT) {
@@ -169,11 +173,41 @@ void gbc_video_update_sprites(void) {
 }
 
 void gbc_video_update_window(void) {
-    g_video.window_enabled = (g_video.lcdc & GB_LCDC_WIN_ENABLE) != 0;
-    if (g_video.window_enabled) {
-        g_video.win_y = g_video.wy;
-        g_video.win_x = (g_video.wx >= 7) ? (g_video.wx - 7 + g_video.viewport_x_offset) : g_video.viewport_x_offset;
+    gbc_video_update_window_screen2();
+}
+
+void gbc_video_update_window_screen2(void) {
+    g_video.window_enabled = ((g_video.lcdc & GB_LCDC_WIN_ENABLE) != 0) &&
+                            ((g_video.lcdc & GB_LCDC_ENABLE) != 0) &&
+                            (g_video.wy < GB_SCREEN_H) &&
+                            (g_video.wx < 167);
+
+    if (!g_video.window_enabled) {
+        g_video.wsc_disp_ctrl &= ~(WSC_DISP_CTRL_SCR2_ON | WSC_DISP_CTRL_WIN_ON);
+        g_video.wsc_win_x1 = 0;
+        g_video.wsc_win_y1 = 0;
+        g_video.wsc_win_x2 = 0;
+        g_video.wsc_win_y2 = 0;
+        return;
     }
+
+    g_video.wsc_disp_ctrl |= (WSC_DISP_CTRL_SCR2_ON | WSC_DISP_CTRL_WIN_ON);
+
+    int left = (g_video.wx >= 7) ? (int)(g_video.wx - 7) : 0;
+    int wsc_left = left + g_video.viewport_x_offset;
+    int wsc_right = g_video.viewport_x_offset + g_video.viewport_width - 1;
+
+    if (wsc_left > wsc_right) {
+        wsc_left = wsc_right;
+    }
+
+    g_video.win_x = (uint8_t)wsc_left;
+    g_video.win_y = g_video.wy;
+
+    g_video.wsc_win_x1 = (uint8_t)wsc_left;
+    g_video.wsc_win_y1 = g_video.wy;
+    g_video.wsc_win_x2 = (uint8_t)wsc_right;
+    g_video.wsc_win_y2 = (uint8_t)(WSC_SCREEN_H - 1);
 }
 
 void gbc_video_render_frame(void) {
@@ -191,5 +225,144 @@ void gbc_video_render_frame(void) {
     }
 
     gbc_video_update_sprites();
-    gbc_video_update_window();
+    gbc_video_update_window_screen2();
+}
+
+void gbc_video_write_bcps(uint8_t val) {
+    g_video.bcps = val;
+}
+
+void gbc_video_write_bcpd(uint8_t val) {
+    uint8_t idx = g_video.bcps & 0x3F;
+    g_video.cgb_bg_pal[idx] = val;
+
+    uint8_t pal_num = idx >> 3;
+    uint8_t col_num = (idx >> 1) & 0x03;
+    uint8_t base = (pal_num << 3) | (col_num << 1);
+    uint16_t bgr555 = (uint16_t)g_video.cgb_bg_pal[base] | ((uint16_t)g_video.cgb_bg_pal[base + 1] << 8);
+    g_video.wsc_bg_palettes[pal_num][col_num] = gbc_to_wsc_color(bgr555);
+
+    if (g_video.bcps & 0x80) {
+        g_video.bcps = (g_video.bcps & 0x80) | ((idx + 1) & 0x3F);
+    }
+}
+
+uint8_t gbc_video_read_bcps(void) {
+    return g_video.bcps | 0x40;
+}
+
+uint8_t gbc_video_read_bcpd(void) {
+    return g_video.cgb_bg_pal[g_video.bcps & 0x3F];
+}
+
+void gbc_video_write_ocps(uint8_t val) {
+    g_video.ocps = val;
+}
+
+void gbc_video_write_ocpd(uint8_t val) {
+    uint8_t idx = g_video.ocps & 0x3F;
+    g_video.cgb_obj_pal[idx] = val;
+
+    uint8_t pal_num = idx >> 3;
+    uint8_t col_num = (idx >> 1) & 0x03;
+    uint8_t base = (pal_num << 3) | (col_num << 1);
+    uint16_t bgr555 = (uint16_t)g_video.cgb_obj_pal[base] | ((uint16_t)g_video.cgb_obj_pal[base + 1] << 8);
+    g_video.wsc_obj_palettes[pal_num][col_num] = gbc_to_wsc_color(bgr555);
+
+    if (g_video.ocps & 0x80) {
+        g_video.ocps = (g_video.ocps & 0x80) | ((idx + 1) & 0x3F);
+    }
+}
+
+uint8_t gbc_video_read_ocps(void) {
+    return g_video.ocps | 0x40;
+}
+
+uint8_t gbc_video_read_ocpd(void) {
+    return g_video.cgb_obj_pal[g_video.ocps & 0x3F];
+}
+
+void gbc_video_write_hdma1(uint8_t val) {
+    g_video.hdma_src = (g_video.hdma_src & 0x00F0) | ((uint16_t)val << 8);
+}
+
+void gbc_video_write_hdma2(uint8_t val) {
+    g_video.hdma_src = (g_video.hdma_src & 0xFF00) | (val & 0xF0);
+}
+
+void gbc_video_write_hdma3(uint8_t val) {
+    g_video.hdma_dst = 0x8000 | ((g_video.hdma_dst & 0x00F0) | ((uint16_t)(val & 0x1F) << 8));
+}
+
+void gbc_video_write_hdma4(uint8_t val) {
+    g_video.hdma_dst = (g_video.hdma_dst & 0xFF00) | (val & 0xF0);
+}
+
+static void gbc_video_transfer_hdma_block(void) {
+    uint16_t src = g_video.hdma_src;
+    uint16_t dst = g_video.hdma_dst;
+
+    for (int i = 0; i < 16; i++) {
+        uint8_t byte = gbc_read8(src + i);
+        uint16_t vram_offset = (dst + i) - 0x8000;
+        if (g_gb.current_vram_bank == 1 && g_gb.is_cgb) {
+            vram_offset += 0x2000;
+        }
+        if (vram_offset < sizeof(g_gb.vram)) {
+            g_gb.vram[vram_offset] = byte;
+            if (vram_offset < 0x1800) {
+                gbc_video_mark_tile_dirty(vram_offset >> 4);
+            }
+        }
+    }
+
+    g_video.hdma_src += 16;
+    g_video.hdma_dst += 16;
+    if (g_video.hdma_dst >= 0xA000) {
+        g_video.hdma_dst = 0x8000 + (g_video.hdma_dst & 0x1FFF);
+    }
+}
+
+void gbc_video_write_hdma5(uint8_t val) {
+    if (g_video.hdma_active && !(val & 0x80)) {
+        g_video.hdma_active = false;
+        g_video.hdma5 = 0x80 | g_video.hdma_blocks_remaining;
+        return;
+    }
+
+    uint8_t blocks = (val & 0x7F) + 1;
+    bool is_hblank = (val & 0x80) != 0;
+
+    if (!is_hblank) {
+        for (uint8_t b = 0; b < blocks; b++) {
+            gbc_video_transfer_hdma_block();
+        }
+        g_video.hdma_active = false;
+        g_video.hdma_blocks_remaining = 0;
+        g_video.hdma5 = 0xFF;
+    } else {
+        g_video.hdma_active = true;
+        g_video.hdma_blocks_remaining = blocks;
+        g_video.hdma5 = val & 0x7F;
+    }
+}
+
+uint8_t gbc_video_read_hdma5(void) {
+    if (!g_video.hdma_active) {
+        return 0xFF;
+    }
+    return (g_video.hdma_blocks_remaining > 0 ? (g_video.hdma_blocks_remaining - 1) : 0);
+}
+
+void gbc_video_step_hdma_hblank(void) {
+    if (g_video.hdma_active && g_video.hdma_blocks_remaining > 0) {
+        gbc_video_transfer_hdma_block();
+        g_video.hdma_blocks_remaining--;
+        if (g_video.hdma_blocks_remaining == 0) {
+            g_video.hdma_active = false;
+            g_video.hdma5 = 0xFF;
+        } else {
+            g_video.hdma5 = g_video.hdma_blocks_remaining - 1;
+        }
+    }
 }

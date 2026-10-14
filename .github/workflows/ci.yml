@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run Python Core Verification Tests
+        run: python tools/test_core.py
+
+      - name: Build Core Library and Run C Unit Tests (Ubuntu)
+        if: runner.os == 'Linux'
+        run: |
+          make -C core
+          ./core/test_runner.exe || ./core/test_runner
+
+      - name: Build Core Library and Run C Unit Tests (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          gcc -Wall -Wextra -O2 -Icore/include -c core/src/gbc_memory.c -o core/src/gbc_memory.o
+          gcc -Wall -Wextra -O2 -Icore/include -c core/src/gbc_video.c -o core/src/gbc_video.o
+          gcc -Wall -Wextra -O2 -Icore/include -c core/src/gbc_input.c -o core/src/gbc_input.o
+          gcc -Wall -Wextra -O2 -Icore/include -c core/src/gbc_audio.c -o core/src/gbc_audio.o
+          gcc -Wall -Wextra -O2 -Icore/include -c core/src/gbc_hal.c -o core/src/gbc_hal.o
+          ar rcs core/libgbc_wsc.a core/src/*.o
+          gcc -Wall -Wextra -O2 -Icore/include -o test_runner.exe core/src/*.o core/tests/test_runner.c
+          .\test_runner.exe

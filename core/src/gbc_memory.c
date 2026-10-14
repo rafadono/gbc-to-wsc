@@ -2,6 +2,7 @@
 #include "gbc_memory.h"
 #include "gbc_video.h"
 #include "gbc_input.h"
+#include "gbc_audio.h"
 #include "gbc_hal.h"
 
 gb_state_t g_gb;
@@ -52,6 +53,13 @@ void gbc_memory_reset(gb_state_t *gb) {
     memset(gb->oam, 0, sizeof(gb->oam));
     memset(gb->io, 0, sizeof(gb->io));
 
+    memset(gb->mbc2_ram, 0, sizeof(gb->mbc2_ram));
+    gb->mbc3_rtc_mapped = false;
+    gb->mbc3_rtc_reg_select = 0;
+    memset(gb->mbc3_rtc_regs, 0, sizeof(gb->mbc3_rtc_regs));
+    memset(gb->mbc3_rtc_latched, 0, sizeof(gb->mbc3_rtc_latched));
+    gb->mbc3_latch_state = 0;
+
     gb->mbc1_mode = 0;
     gb->mbc1_low5 = 1;
     gb->mbc1_high2 = 0;
@@ -70,6 +78,8 @@ void gbc_memory_reset(gb_state_t *gb) {
     gb->tima = 0;
     gb->tma = 0;
     gb->tac = 0;
+
+    gbc_audio_reset();
 }
 
 uint8_t gbc_read8(uint16_t addr) {
@@ -96,6 +106,21 @@ uint8_t gbc_read8(uint16_t addr) {
     }
 
     if (addr < 0xC000) {
+        if (g_gb.mbc_type == MBC2) {
+            if (g_gb.sram_enabled) {
+                return (g_gb.mbc2_ram[addr & 0x01FF] & 0x0F) | 0xF0;
+            }
+            return 0xFF;
+        }
+        if (g_gb.mbc_type == MBC3 && g_gb.mbc3_rtc_mapped) {
+            if (g_gb.sram_enabled) {
+                uint8_t r = g_gb.mbc3_rtc_reg_select;
+                if (r >= 0x08 && r <= 0x0C) {
+                    return g_gb.mbc3_rtc_latched[r - 0x08];
+                }
+            }
+            return 0xFF;
+        }
         if (g_gb.sram && g_gb.sram_enabled) {
             uint32_t sram_offset = (g_gb.current_sram_bank * 0x2000) + (addr - 0xA000);
             if (sram_offset < g_gb.sram_size) {
@@ -126,6 +151,14 @@ uint8_t gbc_read8(uint16_t addr) {
         return 0xFF;
     }
 
+    if (addr >= GB_REG_NR10 && addr <= GB_REG_NR52) {
+        return gbc_audio_read_reg(addr);
+    }
+
+    if (addr >= GB_REG_WAVE_START && addr <= GB_REG_WAVE_END) {
+        return gbc_audio_read_reg(addr);
+    }
+
     if (addr < 0xFF80) {
         uint8_t reg = addr & 0x7F;
         switch (addr) {
@@ -151,6 +184,16 @@ uint8_t gbc_read8(uint16_t addr) {
                 return g_gb.current_vram_bank | 0xFE;
             case GB_REG_SVBK:
                 return g_gb.current_wram_bank | 0xF8;
+            case GB_REG_HDMA5:
+                return gbc_video_read_hdma5();
+            case GB_REG_BCPS:
+                return gbc_video_read_bcps();
+            case GB_REG_BCPD:
+                return gbc_video_read_bcpd();
+            case GB_REG_OCPS:
+                return gbc_video_read_ocps();
+            case GB_REG_OCPD:
+                return gbc_video_read_ocpd();
             default:
                 return g_gb.io[reg];
         }
@@ -206,6 +249,41 @@ void gbc_write8(uint16_t addr, uint8_t val) {
                 }
                 gbc_update_rom_bank_pointer();
             }
+        } else if (g_gb.mbc_type == MBC2) {
+            if (addr < 0x4000) {
+                if (!(addr & 0x0100)) {
+                    g_gb.sram_enabled = ((val & 0x0F) == 0x0A);
+                } else {
+                    uint8_t bank = val & 0x0F;
+                    if (bank == 0) bank = 1;
+                    g_gb.current_rom_bank = bank;
+                    gbc_update_rom_bank_pointer();
+                }
+            }
+        } else if (g_gb.mbc_type == MBC3) {
+            if (addr < 0x2000) {
+                g_gb.sram_enabled = ((val & 0x0F) == 0x0A);
+            } else if (addr < 0x4000) {
+                uint8_t bank = val & 0x7F;
+                if (bank == 0) bank = 1;
+                g_gb.current_rom_bank = bank;
+                gbc_update_rom_bank_pointer();
+            } else if (addr < 0x6000) {
+                if (val <= 0x03) {
+                    g_gb.current_sram_bank = val;
+                    g_gb.mbc3_rtc_mapped = false;
+                } else if (val >= 0x08 && val <= 0x0C) {
+                    g_gb.mbc3_rtc_reg_select = val;
+                    g_gb.mbc3_rtc_mapped = true;
+                }
+            } else {
+                if (g_gb.mbc3_latch_state == 0 && val == 1) {
+                    for (int i = 0; i < 5; i++) {
+                        g_gb.mbc3_rtc_latched[i] = g_gb.mbc3_rtc_regs[i];
+                    }
+                }
+                g_gb.mbc3_latch_state = val;
+            }
         } else if (g_gb.mbc_type == MBC5) {
             if (addr < 0x2000) {
                 g_gb.sram_enabled = ((val & 0x0F) == 0x0A);
@@ -238,6 +316,21 @@ void gbc_write8(uint16_t addr, uint8_t val) {
     }
 
     if (addr < 0xC000) {
+        if (g_gb.mbc_type == MBC2) {
+            if (g_gb.sram_enabled) {
+                g_gb.mbc2_ram[addr & 0x01FF] = val & 0x0F;
+            }
+            return;
+        }
+        if (g_gb.mbc_type == MBC3 && g_gb.mbc3_rtc_mapped) {
+            if (g_gb.sram_enabled) {
+                uint8_t r = g_gb.mbc3_rtc_reg_select;
+                if (r >= 0x08 && r <= 0x0C) {
+                    g_gb.mbc3_rtc_regs[r - 0x08] = val;
+                }
+            }
+            return;
+        }
         if (g_gb.sram && g_gb.sram_enabled) {
             uint32_t sram_offset = (g_gb.current_sram_bank * 0x2000) + (addr - 0xA000);
             if (sram_offset < g_gb.sram_size) {
@@ -270,6 +363,14 @@ void gbc_write8(uint16_t addr, uint8_t val) {
 
     if (addr < 0xFF00) {
         return;
+    }
+
+    if (addr >= GB_REG_NR10 && addr <= GB_REG_NR52) {
+        gbc_audio_write_reg(addr, val);
+    }
+
+    if (addr >= GB_REG_WAVE_START && addr <= GB_REG_WAVE_END) {
+        gbc_audio_write_reg(addr, val);
     }
 
     if (addr < 0xFF80) {
@@ -337,6 +438,33 @@ void gbc_write8(uint16_t addr, uint8_t val) {
                 g_gb.current_wram_bank = b;
                 break;
             }
+            case GB_REG_HDMA1:
+                gbc_video_write_hdma1(val);
+                break;
+            case GB_REG_HDMA2:
+                gbc_video_write_hdma2(val);
+                break;
+            case GB_REG_HDMA3:
+                gbc_video_write_hdma3(val);
+                break;
+            case GB_REG_HDMA4:
+                gbc_video_write_hdma4(val);
+                break;
+            case GB_REG_HDMA5:
+                gbc_video_write_hdma5(val);
+                break;
+            case GB_REG_BCPS:
+                gbc_video_write_bcps(val);
+                break;
+            case GB_REG_BCPD:
+                gbc_video_write_bcpd(val);
+                break;
+            case GB_REG_OCPS:
+                gbc_video_write_ocps(val);
+                break;
+            case GB_REG_OCPD:
+                gbc_video_write_ocpd(val);
+                break;
         }
         return;
     }

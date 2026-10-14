@@ -38,6 +38,13 @@ typedef struct {
     uint8_t mbc1_high2;
     uint16_t mbc5_rom_bank;
 
+    uint8_t mbc2_ram[512];
+    bool mbc3_rtc_mapped;
+    uint8_t mbc3_rtc_reg_select;
+    uint8_t mbc3_rtc_regs[5];
+    uint8_t mbc3_rtc_latched[5];
+    uint8_t mbc3_latch_state;
+
     uint16_t current_rom_bank;
     uint8_t current_wram_bank;
     uint8_t current_vram_bank;

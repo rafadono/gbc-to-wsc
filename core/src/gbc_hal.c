@@ -10,12 +10,14 @@ void gbc_hal_init(const uint8_t *rom, uint32_t rom_size, uint8_t *sram, uint32_t
     gbc_memory_init(&g_gb, rom, rom_size, sram, sram_size);
     gbc_video_init();
     gbc_input_init();
+    gbc_audio_init();
 }
 
 void gbc_hal_reset(void) {
     gbc_memory_reset(&g_gb);
     gbc_video_reset();
     gbc_input_init();
+    gbc_audio_reset();
     g_hal.frame_count = 0;
     g_hal.cycles_executed = 0;
     g_hal.frame_skip_counter = 0;
@@ -65,7 +67,9 @@ void gbc_hal_vsync(void) {
     for (int line = 0; line < 154; line++) {
         gbc_video_step_scanline();
         gbc_hal_step_timers(456);
+        gbc_audio_step(456);
     }
     gbc_video_render_frame();
+    gbc_audio_sync_wsc();
     g_hal.frame_count++;
 }

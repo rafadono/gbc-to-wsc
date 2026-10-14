@@ -314,6 +314,161 @@ static void test_hot_toggle_screen_mode_button(void) {
     TEST_ASSERT(gbc_video_get_screen_mode() == GBC_SCREEN_MODE_STANDARD, "Pressing Y4 again toggles back to standard");
 }
 
+static void test_audio_translation(void) {
+    gbc_audio_reset();
+
+    uint16_t p_sq = gbc_to_wsc_pitch(1500, false);
+    TEST_ASSERT(p_sq > 0 && p_sq < 2048, "Square channel pitch must be within 0-2047");
+
+    uint16_t p_wav = gbc_to_wsc_pitch(1500, true);
+    TEST_ASSERT(p_wav > 0 && p_wav < 2048, "Wave channel pitch must be within 0-2047");
+
+    // Test channel 1 volume and trigger
+    gbc_write8(GB_REG_NR12, 0xF2); // vol 15
+    gbc_write8(GB_REG_NR13, 0x00);
+    gbc_write8(GB_REG_NR14, 0x87); // trigger + freq 7
+    TEST_ASSERT(g_audio.ch1_active == true, "Ch1 must be active after trigger");
+    TEST_ASSERT(g_audio.ch1_vol == 15, "Ch1 vol must be 15");
+
+    // Test channel 2 volume and trigger
+    gbc_write8(GB_REG_NR22, 0x82); // vol 8
+    gbc_write8(GB_REG_NR24, 0x87); // trigger
+    TEST_ASSERT((g_audio.wsc_vol_ch1_ch2 & 0x0F) == 15, "WSC Ch1 volume nibble must be 15");
+    TEST_ASSERT(((g_audio.wsc_vol_ch1_ch2 >> 4) & 0x0F) == 8, "WSC Ch2 volume nibble must be 8");
+
+    // Test Wave RAM write and readback
+    gbc_write8(GB_REG_WAVE_START + 0, 0xAB);
+    gbc_write8(GB_REG_WAVE_START + 15, 0x12);
+    TEST_ASSERT(gbc_read8(GB_REG_WAVE_START + 0) == 0xAB, "Wave RAM byte 0 readback must match");
+    TEST_ASSERT(gbc_read8(GB_REG_WAVE_START + 15) == 0x12, "Wave RAM byte 15 readback must match");
+
+    // Test Master volume and panning
+    gbc_write8(GB_REG_NR50, 0x77);
+    gbc_write8(GB_REG_NR51, 0xFF);
+    TEST_ASSERT(g_audio.wsc_output_mode == 0xFF, "WSC audio output mode must match NR51");
+}
+
+static void test_cgb_palettes(void) {
+    gbc_video_reset();
+
+    // Auto-increment bit 7 set, start at index 0
+    gbc_write8(GB_REG_BCPS, 0x80);
+    // Write color 0 (white: 0x7FFF)
+    gbc_write8(GB_REG_BCPD, 0xFF);
+    gbc_write8(GB_REG_BCPD, 0x7F);
+
+    TEST_ASSERT(g_video.wsc_bg_palettes[0][0] == 0x0FFF, "CGB Palette 0 Color 0 must convert to 0x0FFF (white)");
+    TEST_ASSERT((gbc_read8(GB_REG_BCPS) & 0x3F) == 2, "BCPS index must auto-increment to 2");
+
+    // Write OBJ palette 0 Color 1 (red: 0x001F)
+    gbc_write8(GB_REG_OCPS, 0x80 | 0x02);
+    gbc_write8(GB_REG_OCPD, 0x1F);
+    gbc_write8(GB_REG_OCPD, 0x00);
+    TEST_ASSERT(g_video.wsc_obj_palettes[0][1] == 0x0F00, "CGB OBJ Palette 0 Color 1 must convert to 0x0F00 (red)");
+}
+
+static void test_hdma_transfers(void) {
+    gbc_hal_reset();
+    g_gb.is_cgb = true;
+
+    // Place test pattern in WRAM at 0xC100
+    for (int i = 0; i < 32; i++) {
+        gbc_write8(0xC100 + i, (uint8_t)(0xAA + i));
+    }
+
+    // Configure HDMA: source 0xC100, destination 0x8000
+    gbc_write8(GB_REG_HDMA1, 0xC1);
+    gbc_write8(GB_REG_HDMA2, 0x00);
+    gbc_write8(GB_REG_HDMA3, 0x00);
+    gbc_write8(GB_REG_HDMA4, 0x00);
+
+    // General purpose DMA: 2 blocks (32 bytes), bit 7 = 0
+    gbc_write8(GB_REG_HDMA5, 0x01);
+
+    TEST_ASSERT(gbc_read8(0x8000) == 0xAA, "VRAM byte 0 after GDMA must match source");
+    TEST_ASSERT(gbc_read8(0x801F) == (uint8_t)(0xAA + 31), "VRAM byte 31 after GDMA must match source");
+    TEST_ASSERT(gbc_read8(GB_REG_HDMA5) == 0xFF, "HDMA5 must read 0xFF after GDMA completion");
+}
+
+static void test_mbc3_banking_and_rtc(void) {
+    uint8_t test_rom[0x4000 * 8];
+    memset(test_rom, 0, sizeof(test_rom));
+    for (int b = 0; b < 8; b++) {
+        test_rom[b * 0x4000] = (uint8_t)(0x30 + b);
+    }
+    uint8_t test_sram[0x2000 * 4];
+    memset(test_sram, 0, sizeof(test_sram));
+
+    gb_state_t gb;
+    gbc_memory_init(&gb, test_rom, sizeof(test_rom), test_sram, sizeof(test_sram));
+    gb.mbc_type = MBC3;
+
+    // Enable RAM & RTC
+    gbc_write8(0x0000, 0x0A);
+    TEST_ASSERT(g_gb.sram_enabled == true, "MBC3 RAM & RTC must be enabled with 0x0A");
+
+    // Select ROM bank 4
+    gbc_write8(0x2000, 0x04);
+    TEST_ASSERT(g_gb.current_rom_bank == 4, "MBC3 ROM bank 4 must be selected");
+    TEST_ASSERT(gbc_read8(0x4000) == 0x34, "Read at 0x4000 must match bank 4");
+
+    // Select RTC Register 0x08 (seconds)
+    gbc_write8(0x4000, 0x08);
+    TEST_ASSERT(g_gb.mbc3_rtc_mapped == true, "RTC register mapping must be active");
+    gbc_write8(0xA000, 42); // 42 seconds
+    TEST_ASSERT(g_gb.mbc3_rtc_regs[0] == 42, "RTC seconds register must hold written value");
+
+    // Latch RTC: write 0 then 1 to 0x6000
+    gbc_write8(0x6000, 0x00);
+    gbc_write8(0x6000, 0x01);
+    TEST_ASSERT(gbc_read8(0xA000) == 42, "Latched RTC seconds register must read 42");
+}
+
+static void test_mbc2_banking_and_ram(void) {
+    uint8_t test_rom[0x4000 * 4];
+    memset(test_rom, 0, sizeof(test_rom));
+    for (int b = 0; b < 4; b++) {
+        test_rom[b * 0x4000] = (uint8_t)(0x20 + b);
+    }
+
+    gb_state_t gb;
+    gbc_memory_init(&gb, test_rom, sizeof(test_rom), NULL, 0);
+    gb.mbc_type = MBC2;
+
+    // Address bit 8 = 0: Enable RAM
+    gbc_write8(0x0000, 0x0A);
+    TEST_ASSERT(g_gb.sram_enabled == true, "MBC2 RAM must be enabled");
+
+    // Address bit 8 = 1: ROM bank select
+    gbc_write8(0x0100, 0x03);
+    TEST_ASSERT(g_gb.current_rom_bank == 3, "MBC2 ROM bank 3 must be selected");
+    TEST_ASSERT(gbc_read8(0x4000) == 0x23, "Read at 0x4000 must match bank 3");
+
+    // Test 512x4-bit internal RAM
+    gbc_write8(0xA000, 0x7B); // lower 4 bits are 0x0B
+    TEST_ASSERT(gbc_read8(0xA000) == 0xFB, "MBC2 RAM read must return upper 4 bits as 1s and lower 4 bits as stored");
+}
+
+static void test_window_screen2_clipping(void) {
+    gbc_video_reset();
+    gbc_video_set_screen_mode(GBC_SCREEN_MODE_STANDARD);
+
+    // Enable LCD & Window, set position
+    g_video.lcdc = GB_LCDC_ENABLE | GB_LCDC_WIN_ENABLE;
+    g_video.wy = 30;
+    g_video.wx = 15; // window starts at x = 15 - 7 = 8
+
+    gbc_video_update_window_screen2();
+
+    TEST_ASSERT(g_video.window_enabled == true, "Window must be enabled");
+    TEST_ASSERT((g_video.wsc_disp_ctrl & WSC_DISP_CTRL_SCR2_ON) != 0, "WSC Screen 2 must be turned ON for window");
+    TEST_ASSERT((g_video.wsc_disp_ctrl & WSC_DISP_CTRL_WIN_ON) != 0, "WSC Screen 2 Window clipping must be ON");
+    TEST_ASSERT(g_video.wsc_win_x1 == (32 + 8), "WSC win_x1 must match 32 + (15 - 7) = 40");
+    TEST_ASSERT(g_video.wsc_win_y1 == 30, "WSC win_y1 must match WY (30)");
+    TEST_ASSERT(g_video.wsc_win_x2 == (32 + 160 - 1), "WSC win_x2 must match viewport right edge (191)");
+    TEST_ASSERT(g_video.wsc_win_y2 == 143, "WSC win_y2 must match bottom line (143)");
+}
+
 int main(void) {
     printf("========================================\n");
     printf("   GBC -> WSC COMPATIBILITY LAYER TESTS \n");
@@ -339,12 +494,20 @@ int main(void) {
     test_screen_mode_widescreen();
     test_hot_toggle_screen_mode_button();
 
+    // New Subsystems Tests:
+    test_audio_translation();
+    test_cgb_palettes();
+    test_hdma_transfers();
+    test_mbc3_banking_and_rtc();
+    test_mbc2_banking_and_ram();
+    test_window_screen2_clipping();
+
     printf("\nResults:\n");
     printf("  Passed: %d\n", s_tests_passed);
     printf("  Failed: %d\n", s_tests_failed);
 
     if (s_tests_failed == 0) {
-        printf("\nALL TESTS PASSED SUCCESSFULLY (Hito 1, 2 & 4 Core verified).\n");
+        printf("\nALL TESTS PASSED SUCCESSFULLY (Audio, CGB Palettes/HDMA, MBC2/MBC3 RTC, Screen 2 Window verified).\n");
         return 0;
     } else {
         printf("\nTEST SUITE FAILED.\n");

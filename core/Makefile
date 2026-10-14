@@ -2,7 +2,7 @@ CC ?= gcc
 AR ?= ar
 CFLAGS = -Wall -Wextra -O2 -Iinclude
 
-SRC = src/gbc_memory.c src/gbc_video.c src/gbc_input.c src/gbc_hal.c
+SRC = src/gbc_memory.c src/gbc_video.c src/gbc_input.c src/gbc_audio.c src/gbc_hal.c
 OBJ = $(SRC:.c=.o)
 TEST_SRC = tests/test_runner.c
 

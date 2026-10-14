@@ -5,6 +5,7 @@
 #include "gbc_memory.h"
 #include "gbc_video.h"
 #include "gbc_input.h"
+#include "gbc_audio.h"
 
 typedef struct {
     uint32_t frame_count;
