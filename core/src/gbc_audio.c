@@ -26,6 +26,7 @@ void gbc_audio_init(void) {
     g_audio.nr50 = 0x77;
     g_audio.nr51 = 0xF3;
     gbc_audio_sync_wsc();
+    gbc_audio_ring_init();
 }
 
 void gbc_audio_reset(void) {
@@ -286,3 +287,30 @@ void gbc_audio_set_enhanced(bool enabled) {
 bool gbc_audio_get_enhanced(void) {
     return g_features.enable_enhanced_audio;
 }
+
+gbc_audio_ring_buffer_t g_audio_ring;
+
+void gbc_audio_ring_init(void) {
+    memset(&g_audio_ring, 0, sizeof(gbc_audio_ring_buffer_t));
+}
+
+bool gbc_audio_ring_write(uint8_t sample) {
+    if (g_audio_ring.count >= 2048) return false;
+    g_audio_ring.buffer[g_audio_ring.write_pos] = sample;
+    g_audio_ring.write_pos = (g_audio_ring.write_pos + 1) & 2047;
+    g_audio_ring.count++;
+    return true;
+}
+
+uint8_t gbc_audio_ring_read(void) {
+    if (g_audio_ring.count == 0) return 0;
+    uint8_t sample = g_audio_ring.buffer[g_audio_ring.read_pos];
+    g_audio_ring.read_pos = (g_audio_ring.read_pos + 1) & 2047;
+    g_audio_ring.count--;
+    return sample;
+}
+
+uint16_t gbc_audio_ring_available(void) {
+    return g_audio_ring.count;
+}
+

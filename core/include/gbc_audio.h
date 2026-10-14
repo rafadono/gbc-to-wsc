@@ -90,4 +90,18 @@ uint16_t gbc_to_wsc_pitch(uint16_t gb_freq, bool is_wave);
 void gbc_audio_set_enhanced(bool enabled);
 bool gbc_audio_get_enhanced(void);
 
+typedef struct {
+    uint8_t buffer[2048];
+    uint16_t write_pos;
+    uint16_t read_pos;
+    uint16_t count;
+} gbc_audio_ring_buffer_t;
+
+extern gbc_audio_ring_buffer_t g_audio_ring;
+
+void gbc_audio_ring_init(void);
+bool gbc_audio_ring_write(uint8_t sample);
+uint8_t gbc_audio_ring_read(void);
+uint16_t gbc_audio_ring_available(void);
+
 #endif

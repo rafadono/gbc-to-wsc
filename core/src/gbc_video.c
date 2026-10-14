@@ -1,4 +1,5 @@
 #include <string.h>
+#include <math.h>
 #include "gbc_video.h"
 #include "gbc_memory.h"
 #include "gbc_hal.h"
@@ -533,3 +534,54 @@ uint8_t gbc_video_get_render_scx(void) {
 uint8_t gbc_video_get_render_scy(void) {
     return g_features.enable_smooth_camera ? g_video.render_scy : g_video.scy;
 }
+
+static uint8_t s_planar_tile_cache[16384];
+static bool s_tile_dirty[1024];
+static int16_t s_sin_lut[256];
+static int16_t s_cos_lut[256];
+static bool s_lut_initialized = false;
+
+void gbc_video_load_tile_cache(uint16_t tile_idx, const uint8_t *planar_tile_16bytes) {
+    if (tile_idx >= 1024 || !planar_tile_16bytes) return;
+    memcpy(&s_planar_tile_cache[tile_idx * 16], planar_tile_16bytes, 16);
+    s_tile_dirty[tile_idx] = false;
+}
+
+const uint8_t *gbc_video_get_cached_tile(uint16_t tile_idx) {
+    if (tile_idx >= 1024) return NULL;
+    return &s_planar_tile_cache[tile_idx * 16];
+}
+
+bool gbc_video_is_tile_dirty(uint16_t tile_idx) {
+    if (tile_idx >= 1024) return false;
+    return s_tile_dirty[tile_idx];
+}
+
+void gbc_lut_init(void) {
+    if (s_lut_initialized) return;
+    for (int i = 0; i < 256; i++) {
+        double rad = (double)i * (2.0 * 3.14159265358979323846 / 256.0);
+        s_sin_lut[i] = (int16_t)(sin(rad) * 256.0);
+        s_cos_lut[i] = (int16_t)(cos(rad) * 256.0);
+    }
+    s_lut_initialized = true;
+}
+
+int16_t gbc_lut_sin(uint8_t angle) {
+    if (!s_lut_initialized) gbc_lut_init();
+    return s_sin_lut[angle];
+}
+
+int16_t gbc_lut_cos(uint8_t angle) {
+    if (!s_lut_initialized) gbc_lut_init();
+    return s_cos_lut[angle];
+}
+
+uint16_t gbc_lut_distance(int16_t dx, int16_t dy) {
+    if (dx < 0) dx = -dx;
+    if (dy < 0) dy = -dy;
+    int16_t mx = (dx > dy) ? dx : dy;
+    int16_t mn = (dx > dy) ? dy : dx;
+    return (uint16_t)(mx + ((mn * 3) >> 3));
+}
+

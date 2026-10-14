@@ -114,4 +114,13 @@ void gbc_video_update_camera_interpolation(bool is_held_frame);
 uint8_t gbc_video_get_render_scx(void);
 uint8_t gbc_video_get_render_scy(void);
 
+void gbc_video_load_tile_cache(uint16_t tile_idx, const uint8_t *planar_tile_16bytes);
+const uint8_t *gbc_video_get_cached_tile(uint16_t tile_idx);
+bool gbc_video_is_tile_dirty(uint16_t tile_idx);
+
+void gbc_lut_init(void);
+int16_t gbc_lut_sin(uint8_t angle);
+int16_t gbc_lut_cos(uint8_t angle);
+uint16_t gbc_lut_distance(int16_t dx, int16_t dy);
+
 #endif

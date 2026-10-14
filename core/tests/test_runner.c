@@ -601,6 +601,58 @@ static void test_smooth_camera_interpolation(void) {
     TEST_ASSERT(gbc_video_get_render_scx() == 120, "Disabling must immediately revert to raw SCX");
 }
 
+static void test_strategic_ram_exploitation(void) {
+    // 1. Planar Tile Cache (16 KB = 1024 tiles of 16 bytes)
+    uint8_t sample_planar[16];
+    for (int i = 0; i < 16; i++) sample_planar[i] = (uint8_t)(i * 11);
+    gbc_video_load_tile_cache(42, sample_planar);
+    const uint8_t *cached = gbc_video_get_cached_tile(42);
+    TEST_ASSERT(cached != NULL, "Cached tile pointer must not be null");
+    TEST_ASSERT(memcmp(cached, sample_planar, 16) == 0, "Cached planar tile must match written data");
+    TEST_ASSERT(!gbc_video_is_tile_dirty(42), "Loaded tile must be marked clean");
+
+    // 2. Decompressed World & Level Buffer (16 KB)
+    uint8_t level_chunk[256];
+    for (int i = 0; i < 256; i++) level_chunk[i] = (uint8_t)(0xA0 + (i & 0x0F));
+    gbc_memory_load_level(level_chunk, sizeof(level_chunk));
+    TEST_ASSERT(gbc_memory_read_level_tile(5, 2, 16) == (uint8_t)(0xA0 + 5), "Tile at (5, 2) stride 16 must match offset 37");
+    gbc_memory_write_level_tile(5, 2, 16, 0xFE);
+    TEST_ASSERT(gbc_memory_read_level_tile(5, 2, 16) == 0xFE, "Tile write at (5, 2) must be reflected in level buffer");
+
+    // 3. Fast Math Lookup Tables (LUTs - 4 KB)
+    gbc_lut_init();
+    TEST_ASSERT(gbc_lut_sin(0) == 0, "sin(0) must be 0");
+    TEST_ASSERT(gbc_lut_sin(64) >= 255 && gbc_lut_sin(64) <= 256, "sin(90 deg) must be ~256 in 8.8 fixed point");
+    TEST_ASSERT(gbc_lut_cos(0) >= 255 && gbc_lut_cos(0) <= 256, "cos(0) must be ~256");
+    uint16_t dist = gbc_lut_distance(30, 40);
+    TEST_ASSERT(dist >= 45 && dist <= 55, "Distance (30, 40) must be approximately 50");
+
+    // 4. Audio Ring Buffer (2 KB = 2048 samples)
+    gbc_audio_ring_init();
+    TEST_ASSERT(gbc_audio_ring_available() == 0, "Ring buffer must start empty");
+    bool ring_write_ok = true;
+    for (int i = 0; i < 2048; i++) {
+        if (!gbc_audio_ring_write((uint8_t)(i & 0xFF))) {
+            ring_write_ok = false;
+            break;
+        }
+    }
+    TEST_ASSERT(ring_write_ok, "Writing 2048 samples under capacity must succeed");
+    TEST_ASSERT(!gbc_audio_ring_write(0xFF), "Writing 2049th sample must fail (buffer full)");
+    TEST_ASSERT(gbc_audio_ring_available() == 2048, "Available samples must be 2048");
+    bool ring_fifo_ok = true;
+    for (int i = 0; i < 2048; i++) {
+        uint8_t sample = gbc_audio_ring_read();
+        if (sample != (uint8_t)(i & 0xFF)) {
+            ring_fifo_ok = false;
+            break;
+        }
+    }
+    TEST_ASSERT(ring_fifo_ok, "Ring buffer must pop samples in exact FIFO order");
+    TEST_ASSERT(gbc_audio_ring_available() == 0, "Ring buffer must be empty after reading all samples");
+    TEST_ASSERT(gbc_audio_ring_read() == 0, "Reading empty ring buffer must return 0");
+}
+
 int main(void) {
     printf("========================================\n");
     printf("   GBC -> WSC COMPATIBILITY LAYER TESTS \n");
@@ -640,6 +692,7 @@ int main(void) {
     test_enhanced_audio_harmonics();
     test_feature_disabling();
     test_smooth_camera_interpolation();
+    test_strategic_ram_exploitation();
 
     printf("\nResults:\n");
     printf("  Passed: %d\n", s_tests_passed);
@@ -653,3 +706,4 @@ int main(void) {
         return 1;
     }
 }
+

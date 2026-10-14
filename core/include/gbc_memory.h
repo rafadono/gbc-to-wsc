@@ -62,6 +62,7 @@ typedef struct {
     uint8_t joypad_state;
 
     bool is_cgb;
+    uint8_t world_level_buffer[16384];
 } gb_state_t;
 
 extern gb_state_t g_gb;
@@ -76,5 +77,10 @@ uint16_t gbc_read16(uint16_t addr);
 void gbc_write16(uint16_t addr, uint16_t val);
 
 void gbc_dma_transfer(uint8_t base_page);
+
+void gbc_memory_load_level(const uint8_t *src_level_data, size_t size);
+uint8_t gbc_memory_read_level_tile(uint16_t x, uint16_t y, uint16_t stride);
+void gbc_memory_write_level_tile(uint16_t x, uint16_t y, uint16_t stride, uint8_t tile);
+uint8_t *gbc_memory_get_level_buffer(void);
 
 #endif

@@ -494,3 +494,26 @@ void gbc_dma_transfer(uint8_t base_page) {
         g_gb.oam[i] = gbc_read8(src + i);
     }
 }
+
+void gbc_memory_load_level(const uint8_t *src_level_data, size_t size) {
+    if (!src_level_data) return;
+    if (size > sizeof(g_gb.world_level_buffer)) size = sizeof(g_gb.world_level_buffer);
+    memcpy(g_gb.world_level_buffer, src_level_data, size);
+}
+
+uint8_t gbc_memory_read_level_tile(uint16_t x, uint16_t y, uint16_t stride) {
+    uint32_t offset = (uint32_t)y * stride + x;
+    if (offset >= sizeof(g_gb.world_level_buffer)) return 0;
+    return g_gb.world_level_buffer[offset];
+}
+
+void gbc_memory_write_level_tile(uint16_t x, uint16_t y, uint16_t stride, uint8_t tile) {
+    uint32_t offset = (uint32_t)y * stride + x;
+    if (offset >= sizeof(g_gb.world_level_buffer)) return;
+    g_gb.world_level_buffer[offset] = tile;
+}
+
+uint8_t *gbc_memory_get_level_buffer(void) {
+    return g_gb.world_level_buffer;
+}
+
