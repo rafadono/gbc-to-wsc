@@ -399,9 +399,8 @@ static void test_mbc3_banking_and_rtc(void) {
     uint8_t test_sram[0x2000 * 4];
     memset(test_sram, 0, sizeof(test_sram));
 
-    gb_state_t gb;
-    gbc_memory_init(&gb, test_rom, sizeof(test_rom), test_sram, sizeof(test_sram));
-    gb.mbc_type = MBC3;
+    gbc_memory_init(&g_gb, test_rom, sizeof(test_rom), test_sram, sizeof(test_sram));
+    g_gb.mbc_type = MBC3;
 
     // Enable RAM & RTC
     gbc_write8(0x0000, 0x0A);
@@ -431,9 +430,8 @@ static void test_mbc2_banking_and_ram(void) {
         test_rom[b * 0x4000] = (uint8_t)(0x20 + b);
     }
 
-    gb_state_t gb;
-    gbc_memory_init(&gb, test_rom, sizeof(test_rom), NULL, 0);
-    gb.mbc_type = MBC2;
+    gbc_memory_init(&g_gb, test_rom, sizeof(test_rom), NULL, 0);
+    g_gb.mbc_type = MBC2;
 
     // Address bit 8 = 0: Enable RAM
     gbc_write8(0x0000, 0x0A);

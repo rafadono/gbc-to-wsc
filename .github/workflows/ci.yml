@@ -36,11 +36,5 @@ jobs:
       - name: Build Core Library and Run C Unit Tests (Windows)
         if: runner.os == 'Windows'
         run: |
-          gcc -Wall -Wextra -O2 -Icore/include -c core/src/gbc_memory.c -o core/src/gbc_memory.o
-          gcc -Wall -Wextra -O2 -Icore/include -c core/src/gbc_video.c -o core/src/gbc_video.o
-          gcc -Wall -Wextra -O2 -Icore/include -c core/src/gbc_input.c -o core/src/gbc_input.o
-          gcc -Wall -Wextra -O2 -Icore/include -c core/src/gbc_audio.c -o core/src/gbc_audio.o
-          gcc -Wall -Wextra -O2 -Icore/include -c core/src/gbc_hal.c -o core/src/gbc_hal.o
-          ar rcs core/libgbc_wsc.a core/src/*.o
-          gcc -Wall -Wextra -O2 -Icore/include -o test_runner.exe core/src/*.o core/tests/test_runner.c
+          gcc -Wall -Wextra -O2 -Icore/include -o test_runner.exe core/src/gbc_memory.c core/src/gbc_video.c core/src/gbc_input.c core/src/gbc_audio.c core/src/gbc_hal.c core/tests/test_runner.c
           .\test_runner.exe

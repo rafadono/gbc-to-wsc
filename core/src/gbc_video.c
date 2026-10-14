@@ -78,9 +78,9 @@ static const char * const s_dmg_palette_names[DMG_PALETTE_COUNT] = {
 void gbc_video_init(void) {
     memset(&g_video, 0, sizeof(gbc_video_state_t));
     g_video.lcdc = 0x91;
-    g_video.bgp  = 0xFC;
-    g_video.obp0 = 0xFF;
-    g_video.obp1 = 0xFF;
+    g_video.bgp  = 0xE4;
+    g_video.obp0 = 0xE4;
+    g_video.obp1 = 0xE4;
     g_video.hdma5 = 0xFF;
     g_video.wsc_disp_ctrl = WSC_DISP_CTRL_SCR1_ON | WSC_DISP_CTRL_SPR_ON;
     g_video.vram_dirty = true;
