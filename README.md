@@ -53,30 +53,33 @@ The `gbc_wsc_hal` bridges the recompiled and decompiled game logic directly to n
 
 ```
 WS/
-├── .gitmodules                 # Submodule reference to arcanite24/gb-recompiled
-├── submodules/
-│   └── gb-recompiled/          # Upstream static recompiler source
-├── include/
-│   ├── gbc_types.h             # GB register definitions, flags, and constants
-│   ├── gbc_memory.h            # Memory bus, MBC1/MBC5 banking, and RAM state
-│   ├── gbc_video.h             # PPU scanner, tile translation, sprites, and palettes
-│   ├── gbc_input.h             # Joypad polling and register $FF00 key matrix
-│   ├── gbc_hal.h               # Core lifecycle, timers, and 60 Hz / 75 Hz sync
-│   └── wsc_hardware.h          # WonderSwan Color ports and color conversion
-├── src/
-│   ├── gbc_memory.c            # Memory bus read/write and mapper controllers
-│   ├── gbc_video.c             # Bitplane transpose, OAM translation, and window mapping
-│   ├── gbc_input.c             # Input matrix translation
-│   └── gbc_hal.c               # Master HAL lifecycle, TIMA/DIV timers, vsync loop
-├── tests/
-│   └── test_runner.c           # Comprehensive unit tests (46 test cases)
-├── tools/
-│   ├── gb_recomp_bridge.py     # ROM header parser, validator, and WSC binary builder
-│   └── pipeline.py             # End-to-end automation pipeline script
-├── roms/
+├── core/                       # Shared GBC -> WonderSwan Color HAL (Stage 1 Core)
+│   ├── include/                # gbc_types.h, gbc_memory.h, gbc_video.h, gbc_input.h...
+│   ├── src/                    # gbc_memory.c, gbc_video.c, gbc_input.c, gbc_hal.c
+│   ├── tests/                  # Hardware abstraction unit tests (61 tests)
+│   ├── Makefile                # Core library (libgbc_wsc.a) and test targets
+│   └── README.md               # Dedicated HAL technical documentation
+├── ports/                      # Game-specific modules (Stage 2 Enhancements)
+│   ├── super_marioland/        # Super Mario Land module (Rev A / v1.1)
+│   │   ├── hooks/              # 28-tile widescreen camera & HUD centering hooks
+│   │   ├── config.json         # Game configuration, SHA-1, and mapper metadata
+│   │   └── README.md           # Super Mario Land documentation and build guide
+│   └── tetris_dx/              # Tetris DX module (CGB)
+│       ├── hooks/              # RGB444 downsampling & SRAM backup hooks
+│       ├── config.json         # Game configuration, SHA-1, and mapper metadata
+│       └── README.md           # Tetris DX documentation and build guide
+├── tools/                      # Build pipeline, packaging, and test runners
+│   ├── bin/                    # Local tool binaries (gbrecomp)
+│   ├── runner/                 # Desktop test runner drop folder (mednafen, Mesen)
+│   ├── gb_recomp_bridge.py     # Header validation and WSC cartridge builder
+│   ├── pipeline.py             # End-to-end automation pipeline script
+│   └── test_wsc.py             # Desktop test runner and validation script
+├── roms/                       # Untracked ROM directory (BYOR pattern)
 │   ├── .gitignore              # Ignores copyrighted binaries (*.gb, *.gbc)
 │   └── README.md               # ROM directory instructions
-└── Makefile                    # Build rules for tests and pipeline
+├── submodules/
+│   └── gb-recompiled/          # Upstream static recompiler submodule
+└── Makefile                    # Root build and orchestration rules
 ```
 
 ---

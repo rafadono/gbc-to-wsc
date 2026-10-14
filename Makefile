@@ -1,18 +1,28 @@
-CC = gcc
-CFLAGS = -Wall -Wextra -O2 -Iinclude
+CC ?= gcc
+AR ?= ar
+CFLAGS = -Wall -Wextra -O2 -Icore/include
 
-SRC = src/gbc_memory.c src/gbc_video.c src/gbc_input.c src/gbc_hal.c
-TEST_SRC = tests/test_runner.c
+CORE_SRC = core/src/gbc_memory.c core/src/gbc_video.c core/src/gbc_input.c core/src/gbc_hal.c
+CORE_OBJ = $(CORE_SRC:.c=.o)
+TEST_SRC = core/tests/test_runner.c
+TEST_TARGET = test_runner.exe
+CORE_LIB = core/libgbc_wsc.a
 
-TARGET = test_runner.exe
+all: $(TEST_TARGET) $(CORE_LIB)
 
-all: $(TARGET)
+$(CORE_LIB): $(CORE_OBJ)
+	$(AR) rcs $@ $^
 
-$(TARGET): $(SRC) $(TEST_SRC)
+core/src/%.o: core/src/%.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(TEST_TARGET): $(CORE_SRC) $(TEST_SRC)
 	$(CC) $(CFLAGS) -o $@ $^
 
-test: $(TARGET)
-	./$(TARGET)
+test: $(TEST_TARGET)
+	./$(TEST_TARGET)
+
+lib: $(CORE_LIB)
 
 submodule-update:
 	git submodule update --init --recursive
@@ -30,6 +40,6 @@ runners:
 	@python tools/test_wsc.py --list
 
 clean:
-	rm -f $(TARGET) *.o src/*.o build/gbc_bridge_sample.wsc
+	rm -f $(TEST_TARGET) $(CORE_LIB) core/src/*.o *.o build/gbc_bridge_sample.wsc
 
-.PHONY: all test clean game submodule-update run validate runners
+.PHONY: all test lib clean game submodule-update run validate runners
