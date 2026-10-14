@@ -32,6 +32,20 @@ void gbc_audio_reset(void) {
     gbc_audio_init();
 }
 
+static const uint8_t s_duty_raw[4][16] = {
+    { 0, 0, 15, 15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 15, 15, 15, 15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 15, 15, 15, 15, 15, 15, 15, 15, 0, 0, 0, 0, 0, 0 },
+    { 15, 15, 0, 0, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15 }
+};
+
+static const uint8_t s_duty_enhanced[4][16] = {
+    { 0, 4, 15, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+    { 0, 4, 14, 15, 14, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+    { 1, 6, 13, 15, 15, 15, 15, 13, 6, 1, 0, 0, 0, 0, 0, 0 },
+    { 14, 4, 0, 4, 14, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15 }
+};
+
 void gbc_audio_sync_wsc(void) {
     uint16_t p1 = gbc_to_wsc_pitch(g_audio.ch1_freq, false);
     g_audio.wsc_ch1_pitch_l = (uint8_t)(p1 & 0xFF);
@@ -71,6 +85,12 @@ void gbc_audio_sync_wsc(void) {
     uint8_t left_v = (g_audio.nr50 >> 4) & 0x07;
     uint8_t right_v = g_audio.nr50 & 0x07;
     g_audio.wsc_master_vol = (left_v > right_v ? left_v : right_v) >> 1;
+
+    uint8_t d1 = (g_audio.nr11 >> 6) & 0x03;
+    uint8_t d2 = (g_audio.nr21 >> 6) & 0x03;
+    const uint8_t (*tbl)[16] = g_features.enable_enhanced_audio ? s_duty_enhanced : s_duty_raw;
+    memcpy(g_audio.wsc_ch1_wave, tbl[d1], 16);
+    memcpy(g_audio.wsc_ch2_wave, tbl[d2], 16);
 }
 
 void gbc_audio_write_reg(uint16_t addr, uint8_t val) {
@@ -256,4 +276,13 @@ uint8_t gbc_audio_read_reg(uint16_t addr) {
 void gbc_audio_step(uint16_t cycles) {
     (void)cycles;
     gbc_audio_sync_wsc();
+}
+
+void gbc_audio_set_enhanced(bool enabled) {
+    g_features.enable_enhanced_audio = enabled;
+    gbc_audio_sync_wsc();
+}
+
+bool gbc_audio_get_enhanced(void) {
+    return g_features.enable_enhanced_audio;
 }

@@ -70,6 +70,7 @@ gbc-to-wsc/
 │   ├── runner/                 # Desktop test runner drop folder (mednafen, Mesen)
 │   ├── gb_recomp_bridge.py     # Header validation and WSC cartridge builder
 │   ├── pipeline.py             # End-to-end automation pipeline script
+│   ├── new_port.py             # Standalone game port repository scaffolding tool
 │   ├── test_core.py            # Core subsystems validation test harness
 │   └── test_wsc.py             # Desktop test runner and validation script
 ├── roms/                       # Untracked ROM directory (BYOR pattern)
@@ -82,9 +83,39 @@ gbc-to-wsc/
 
 ---
 
+## Scaffolding a New Game Port
+
+To automatically scaffold a new standalone game repository configured with hooks, submodules, and customizable feature flags:
+
+```bash
+python tools/new_port.py "roms/Metroid II (World).gb" ../metroid2-wsc --dmg-palettes --widescreen
+```
+
+Available CLI flags:
+* `--widescreen`: Enables the real-time widescreen toggle on button `Y4`.
+* `--dmg-palettes`: Enables the 5-preset DMG palette cycler on button `Y2`.
+* `--tate`: Configures Tate 90-degree vertical orientation and remapped controls.
+* `--no-enhanced-audio`: Disables harmonic waveform smoothing, enforcing strict raw pulse duty cycles.
+
+---
+
+## Configurable Feature Flags
+
+All enhancements in `gbc-to-wsc` are modular and can be individually enabled or disabled via C API or `config.json`:
+
+```c
+/* In your game's hooks_init callback: */
+gbc_features_set_widescreen_toggle(false); // Disables Y4 widescreen toggle (keeps strict 160x144)
+gbc_features_set_dmg_palette_cycle(true);  // Enables Y2 DMG palette cycler
+gbc_features_set_tate_mode(false);         // Disables Tate mode (landscape orientation)
+gbc_features_set_enhanced_audio(true);     // Enables WonderSwan acoustic harmonic smoothing
+```
+
+---
+
 ## Integration as a Git Submodule
 
-To use `gbc-to-wsc` as the underlying translation HAL in a standalone game port repository:
+To manually link `gbc-to-wsc` in an existing game repository:
 
 ```bash
 git submodule add https://github.com/rafadono/gbc-to-wsc.git submodules/gbc-to-wsc

@@ -69,6 +69,9 @@ typedef struct {
     uint8_t wsc_noise_ctrl;
     uint8_t wsc_output_mode;
     uint8_t wsc_master_vol;
+
+    uint8_t wsc_ch1_wave[16];
+    uint8_t wsc_ch2_wave[16];
 } gbc_audio_state_t;
 
 extern gbc_audio_state_t g_audio;
@@ -83,5 +86,8 @@ void gbc_audio_step(uint16_t cycles);
 void gbc_audio_sync_wsc(void);
 
 uint16_t gbc_to_wsc_pitch(uint16_t gb_freq, bool is_wave);
+
+void gbc_audio_set_enhanced(bool enabled);
+bool gbc_audio_get_enhanced(void);
 
 #endif

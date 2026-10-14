@@ -5,11 +5,12 @@
 
 gbc_video_state_t g_video;
 
-static const uint16_t DMG_PALETTE_COLORS[4] = {
-    0x0FFF,
-    0x0AAA,
-    0x0555,
-    0x0000
+static const uint16_t s_dmg_palette_presets[DMG_PALETTE_COUNT][4] = {
+    [DMG_PALETTE_ORIGINAL_GREEN]   = { 0x08E2, 0x06A2, 0x0482, 0x0140 },
+    [DMG_PALETTE_POCKET_GRAYSCALE] = { 0x0FFF, 0x0AAA, 0x0555, 0x0000 },
+    [DMG_PALETTE_WARM_SEPIA]       = { 0x0FDE, 0x0CBA, 0x0864, 0x0321 },
+    [DMG_PALETTE_COOL_BLUE]        = { 0x0DEF, 0x08BC, 0x0479, 0x0124 },
+    [DMG_PALETTE_WSC_VIBRANT]      = { 0x0FFE, 0x0BD8, 0x0697, 0x0033 }
 };
 
 void gbc_video_init(void) {
@@ -38,7 +39,10 @@ void gbc_video_reset(void) {
 
 void gbc_video_set_screen_mode(gbc_screen_mode_t mode) {
     g_video.screen_mode = mode;
-    if (mode == GBC_SCREEN_MODE_WIDESCREEN) {
+    if (g_features.orientation == GBC_ORIENTATION_VERTICAL) {
+        g_video.viewport_x_offset = 0;
+        g_video.viewport_width = 144;
+    } else if (mode == GBC_SCREEN_MODE_WIDESCREEN) {
         g_video.viewport_x_offset = 0;
         g_video.viewport_width = WSC_SCREEN_W;
     } else {
@@ -74,16 +78,22 @@ void gbc_video_mark_tile_dirty(uint16_t tile_idx) {
 }
 
 void gbc_video_update_palettes(void) {
+    dmg_palette_preset_t preset = g_features.current_dmg_palette;
+    if (preset >= DMG_PALETTE_COUNT) {
+        preset = DMG_PALETTE_POCKET_GRAYSCALE;
+    }
+    const uint16_t *colors = s_dmg_palette_presets[preset];
+
     for (int i = 0; i < 4; i++) {
         uint8_t shade = (g_video.bgp >> (i * 2)) & 0x03;
-        g_video.wsc_bg_palettes[0][i] = DMG_PALETTE_COLORS[shade];
+        g_video.wsc_bg_palettes[0][i] = colors[shade];
     }
 
     for (int i = 0; i < 4; i++) {
         uint8_t shade0 = (g_video.obp0 >> (i * 2)) & 0x03;
         uint8_t shade1 = (g_video.obp1 >> (i * 2)) & 0x03;
-        g_video.wsc_obj_palettes[0][i] = DMG_PALETTE_COLORS[shade0];
-        g_video.wsc_obj_palettes[1][i] = DMG_PALETTE_COLORS[shade1];
+        g_video.wsc_obj_palettes[0][i] = colors[shade0];
+        g_video.wsc_obj_palettes[1][i] = colors[shade1];
     }
 }
 
@@ -365,4 +375,37 @@ void gbc_video_step_hdma_hblank(void) {
             g_video.hdma5 = g_video.hdma_blocks_remaining - 1;
         }
     }
+}
+
+void gbc_video_cycle_dmg_palette(void) {
+    if (!g_features.enable_dmg_palette_cycle) {
+        return;
+    }
+    g_features.current_dmg_palette = (dmg_palette_preset_t)((g_features.current_dmg_palette + 1) % DMG_PALETTE_COUNT);
+    gbc_video_update_palettes();
+}
+
+void gbc_video_set_dmg_palette_preset(dmg_palette_preset_t preset) {
+    if (preset < DMG_PALETTE_COUNT) {
+        g_features.current_dmg_palette = preset;
+        gbc_video_update_palettes();
+    }
+}
+
+dmg_palette_preset_t gbc_video_get_dmg_palette_preset(void) {
+    return g_features.current_dmg_palette;
+}
+
+void gbc_video_set_orientation(gbc_orientation_t orientation) {
+    g_features.orientation = orientation;
+    if (orientation == GBC_ORIENTATION_VERTICAL) {
+        g_video.viewport_x_offset = 0;
+        g_video.viewport_width = 144;
+    } else {
+        gbc_video_set_screen_mode(g_video.screen_mode);
+    }
+}
+
+gbc_orientation_t gbc_video_get_orientation(void) {
+    return g_features.orientation;
 }

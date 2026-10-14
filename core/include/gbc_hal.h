@@ -25,4 +25,10 @@ void gbc_hal_step_timers(uint16_t cycles);
 bool gbc_hal_frame_sync(void);
 void gbc_hal_vsync(void);
 
+void gbc_features_init_default(void);
+void gbc_features_set_widescreen_toggle(bool enabled);
+void gbc_features_set_dmg_palette_cycle(bool enabled);
+void gbc_features_set_tate_mode(bool enabled);
+void gbc_features_set_enhanced_audio(bool enabled);
+
 #endif

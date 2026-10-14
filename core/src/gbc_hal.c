@@ -2,11 +2,40 @@
 #include <string.h>
 
 gbc_hal_context_t g_hal;
+gbc_features_t g_features;
+
+void gbc_features_init_default(void) {
+    g_features.enable_widescreen_toggle = true;
+    g_features.enable_dmg_palette_cycle = true;
+    g_features.enable_tate_mode = false;
+    g_features.enable_enhanced_audio = false;
+    g_features.current_dmg_palette = DMG_PALETTE_POCKET_GRAYSCALE;
+    g_features.orientation = GBC_ORIENTATION_HORIZONTAL;
+}
+
+void gbc_features_set_widescreen_toggle(bool enabled) {
+    g_features.enable_widescreen_toggle = enabled;
+}
+
+void gbc_features_set_dmg_palette_cycle(bool enabled) {
+    g_features.enable_dmg_palette_cycle = enabled;
+}
+
+void gbc_features_set_tate_mode(bool enabled) {
+    g_features.enable_tate_mode = enabled;
+    gbc_video_set_orientation(enabled ? GBC_ORIENTATION_VERTICAL : GBC_ORIENTATION_HORIZONTAL);
+}
+
+void gbc_features_set_enhanced_audio(bool enabled) {
+    g_features.enable_enhanced_audio = enabled;
+    gbc_audio_set_enhanced(enabled);
+}
 
 void gbc_hal_init(const uint8_t *rom, uint32_t rom_size, uint8_t *sram, uint32_t sram_size) {
     memset(&g_hal, 0, sizeof(gbc_hal_context_t));
     g_hal.is_running = true;
 
+    gbc_features_init_default();
     gbc_memory_init(&g_gb, rom, rom_size, sram, sram_size);
     gbc_video_init();
     gbc_input_init();

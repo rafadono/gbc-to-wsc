@@ -106,4 +106,29 @@ typedef struct {
     uint8_t flags;
 } gb_oam_entry_t;
 
+typedef enum {
+    GBC_ORIENTATION_HORIZONTAL = 0,
+    GBC_ORIENTATION_VERTICAL = 1
+} gbc_orientation_t;
+
+typedef enum {
+    DMG_PALETTE_ORIGINAL_GREEN = 0,
+    DMG_PALETTE_POCKET_GRAYSCALE = 1,
+    DMG_PALETTE_WARM_SEPIA = 2,
+    DMG_PALETTE_COOL_BLUE = 3,
+    DMG_PALETTE_WSC_VIBRANT = 4,
+    DMG_PALETTE_COUNT = 5
+} dmg_palette_preset_t;
+
+typedef struct {
+    bool enable_widescreen_toggle;
+    bool enable_dmg_palette_cycle;
+    bool enable_tate_mode;
+    bool enable_enhanced_audio;
+    dmg_palette_preset_t current_dmg_palette;
+    gbc_orientation_t orientation;
+} gbc_features_t;
+
+extern gbc_features_t g_features;
+
 #endif

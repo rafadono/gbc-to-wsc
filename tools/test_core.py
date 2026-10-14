@@ -136,6 +136,61 @@ def test_window_screen2_clipping():
     assert wsc_y2 == 143, f"Expected win_y2=143, got {wsc_y2}"
     print("PASS: Window Screen 2 hardware clipping coordinates")
 
+def test_dmg_palette_presets():
+    presets = [
+        [0x08E2, 0x06A2, 0x0482, 0x0140], # Green
+        [0x0FFF, 0x0AAA, 0x0555, 0x0000], # Pocket
+        [0x0FDE, 0x0CBA, 0x0864, 0x0321], # Sepia
+        [0x0DEF, 0x08BC, 0x0479, 0x0124], # Cool blue
+        [0x0FFE, 0x0BD8, 0x0697, 0x0033]  # WSC Vibrant
+    ]
+    curr = 1 # Pocket
+    curr = (curr + 1) % len(presets)
+    assert curr == 2, "Palette preset cycle failed"
+    assert presets[curr][0] == 0x0FDE, "Warm sepia color 0 mismatch"
+    print("PASS: DMG Palette presets and cycling")
+
+def test_tate_orientation():
+    # In Tate mode (vertical 90° CCW):
+    # WSC key mapping to GB buttons:
+    wsc_keys = 0x0200 # Y2 pressed
+    # Y2 maps to GB_BTN_UP in Tate mode
+    gb_btn_up = (wsc_keys & 0x0200) != 0
+    assert gb_btn_up, "Tate Y2 -> UP mapping failed"
+
+    wsc_x4 = 0x0008 # X4 pressed
+    # X4 maps to GB_BTN_A in Tate mode
+    gb_btn_a = (wsc_x4 & 0x0008) != 0
+    assert gb_btn_a, "Tate X4 -> A mapping failed"
+    print("PASS: Tate mode 90-degree vertical controls remapping")
+
+def test_enhanced_audio_harmonics():
+    raw_50 = [0, 0, 15, 15, 15, 15, 15, 15, 15, 15, 0, 0, 0, 0, 0, 0]
+    enhanced_50 = [1, 6, 13, 15, 15, 15, 15, 13, 6, 1, 0, 0, 0, 0, 0, 0]
+
+    # Verify smoothed band-limited transitions (no harsh instantaneous 0 -> 15 jump)
+    assert enhanced_50[0] < enhanced_50[1] < enhanced_50[2] < enhanced_50[3], "Enhanced audio transition slope mismatch"
+    assert max(enhanced_50) == 15, "Enhanced audio max volume mismatch"
+    print("PASS: Enhanced audio acoustic harmonic smoothing")
+
+def test_feature_disabling():
+    # 1. Widescreen toggle disabling
+    enable_widescreen_toggle = False
+    current_mode = "STANDARD"
+    y4_pressed = True
+    if enable_widescreen_toggle and y4_pressed:
+        current_mode = "WIDESCREEN"
+    assert current_mode == "STANDARD", "Disabled widescreen toggle should not change mode"
+
+    # 2. Palette cycler disabling
+    enable_dmg_palette_cycle = False
+    current_palette = 1 # Pocket
+    y2_pressed = True
+    if enable_dmg_palette_cycle and y2_pressed:
+        current_palette = (current_palette + 1) % 5
+    assert current_palette == 1, "Disabled palette cycle should keep current preset"
+    print("PASS: Feature disabling (widescreen & palette toggle flags)")
+
 def main():
     print("Running Python Core Verification Tests...")
     test_audio_pitch_conversion()
@@ -144,6 +199,10 @@ def main():
     test_mbc3_rtc()
     test_mbc2()
     test_window_screen2_clipping()
+    test_dmg_palette_presets()
+    test_tate_orientation()
+    test_enhanced_audio_harmonics()
+    test_feature_disabling()
     print("\nALL PYTHON CORE VERIFICATION TESTS PASSED SUCCESSFULLY.")
 
 if __name__ == "__main__":

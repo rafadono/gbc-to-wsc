@@ -27,22 +27,47 @@ void gbc_input_poll(void) {
 }
 
 void gbc_input_process_wsc_keys(uint16_t wsc_keys) {
-    gbc_input_set_button(GB_BTN_UP,     (wsc_keys & WSC_KEY_X1) != 0);
-    gbc_input_set_button(GB_BTN_RIGHT,  (wsc_keys & WSC_KEY_X2) != 0);
-    gbc_input_set_button(GB_BTN_DOWN,   (wsc_keys & WSC_KEY_X3) != 0);
-    gbc_input_set_button(GB_BTN_LEFT,   (wsc_keys & WSC_KEY_X4) != 0);
+    if (g_features.orientation == GBC_ORIENTATION_VERTICAL) {
+        /* Tate vertical orientation controls (rotated 90 degrees CCW) */
+        gbc_input_set_button(GB_BTN_UP,     (wsc_keys & WSC_KEY_Y2) != 0);
+        gbc_input_set_button(GB_BTN_RIGHT,  (wsc_keys & WSC_KEY_Y3) != 0);
+        gbc_input_set_button(GB_BTN_DOWN,   (wsc_keys & WSC_KEY_Y4) != 0);
+        gbc_input_set_button(GB_BTN_LEFT,   (wsc_keys & WSC_KEY_Y1) != 0);
 
-    gbc_input_set_button(GB_BTN_A,      (wsc_keys & WSC_KEY_A) != 0);
-    gbc_input_set_button(GB_BTN_B,      (wsc_keys & WSC_KEY_B) != 0);
-    gbc_input_set_button(GB_BTN_START,  (wsc_keys & WSC_KEY_START) != 0);
-    gbc_input_set_button(GB_BTN_SELECT, (wsc_keys & WSC_KEY_Y1) != 0);
+        gbc_input_set_button(GB_BTN_A,      (wsc_keys & WSC_KEY_X4) != 0);
+        gbc_input_set_button(GB_BTN_B,      (wsc_keys & WSC_KEY_X3) != 0);
+        gbc_input_set_button(GB_BTN_START,  (wsc_keys & WSC_KEY_START) != 0);
+        gbc_input_set_button(GB_BTN_SELECT, (wsc_keys & WSC_KEY_A) != 0);
+    } else {
+        /* Standard landscape orientation controls */
+        gbc_input_set_button(GB_BTN_UP,     (wsc_keys & WSC_KEY_X1) != 0);
+        gbc_input_set_button(GB_BTN_RIGHT,  (wsc_keys & WSC_KEY_X2) != 0);
+        gbc_input_set_button(GB_BTN_DOWN,   (wsc_keys & WSC_KEY_X3) != 0);
+        gbc_input_set_button(GB_BTN_LEFT,   (wsc_keys & WSC_KEY_X4) != 0);
+
+        gbc_input_set_button(GB_BTN_A,      (wsc_keys & WSC_KEY_A) != 0);
+        gbc_input_set_button(GB_BTN_B,      (wsc_keys & WSC_KEY_B) != 0);
+        gbc_input_set_button(GB_BTN_START,  (wsc_keys & WSC_KEY_START) != 0);
+        gbc_input_set_button(GB_BTN_SELECT, (wsc_keys & WSC_KEY_Y1) != 0);
+    }
 
     uint16_t just_pressed = wsc_keys & ~s_prev_wsc_keys;
-    if (just_pressed & WSC_KEY_Y4) {
-        gbc_screen_mode_t current = gbc_video_get_screen_mode();
-        gbc_video_set_screen_mode(current == GBC_SCREEN_MODE_STANDARD 
-                                  ? GBC_SCREEN_MODE_WIDESCREEN 
-                                  : GBC_SCREEN_MODE_STANDARD);
+
+    /* Hot-toggle Widescreen (Y4): Only if enabled and not in Tate mode */
+    if (g_features.enable_widescreen_toggle && g_features.orientation != GBC_ORIENTATION_VERTICAL) {
+        if (just_pressed & WSC_KEY_Y4) {
+            gbc_screen_mode_t current = gbc_video_get_screen_mode();
+            gbc_video_set_screen_mode(current == GBC_SCREEN_MODE_STANDARD 
+                                      ? GBC_SCREEN_MODE_WIDESCREEN 
+                                      : GBC_SCREEN_MODE_STANDARD);
+        }
+    }
+
+    /* Hot-cycle DMG Palettes (Y2): Only if enabled and in monochrome DMG mode */
+    if (g_features.enable_dmg_palette_cycle && !g_gb.is_cgb && g_features.orientation != GBC_ORIENTATION_VERTICAL) {
+        if (just_pressed & WSC_KEY_Y2) {
+            gbc_video_cycle_dmg_palette();
+        }
     }
 
     s_prev_wsc_keys = wsc_keys;

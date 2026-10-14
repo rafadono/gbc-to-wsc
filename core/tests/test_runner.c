@@ -469,6 +469,84 @@ static void test_window_screen2_clipping(void) {
     TEST_ASSERT(g_video.wsc_win_y2 == 143, "WSC win_y2 must match bottom line (143)");
 }
 
+static void test_dmg_palette_presets_and_cycling(void) {
+    gbc_video_reset();
+    g_gb.is_cgb = false;
+    gbc_features_set_dmg_palette_cycle(true);
+
+    // Initial preset is pocket grayscale
+    gbc_video_set_dmg_palette_preset(DMG_PALETTE_POCKET_GRAYSCALE);
+    TEST_ASSERT(g_video.wsc_bg_palettes[0][0] == 0x0FFF, "Pocket color 0 must be 0x0FFF");
+
+    // Cycle palette via Y2 button
+    gbc_input_process_wsc_keys(WSC_KEY_Y2);
+    TEST_ASSERT(gbc_video_get_dmg_palette_preset() == DMG_PALETTE_WARM_SEPIA, "Cycle must advance to warm sepia");
+    TEST_ASSERT(g_video.wsc_bg_palettes[0][0] == 0x0FDE, "Warm sepia color 0 must be 0x0FDE");
+
+    // Cycle again
+    gbc_input_process_wsc_keys(0);
+    gbc_input_process_wsc_keys(WSC_KEY_Y2);
+    TEST_ASSERT(gbc_video_get_dmg_palette_preset() == DMG_PALETTE_COOL_BLUE, "Cycle must advance to cool blue");
+}
+
+static void test_tate_orientation_and_input(void) {
+    gbc_hal_reset();
+    gbc_features_set_tate_mode(true);
+
+    TEST_ASSERT(gbc_video_get_orientation() == GBC_ORIENTATION_VERTICAL, "Orientation must be vertical");
+    TEST_ASSERT(gbc_video_get_viewport_width() == 144, "Tate viewport width must be 144");
+
+    // In Tate mode, Y2 is D-Pad UP
+    gbc_input_process_wsc_keys(WSC_KEY_Y2);
+    uint8_t p1 = gbc_input_read_p1(0x20); // read directions (bit 4 low)
+    TEST_ASSERT((p1 & 0x04) == 0, "Direction UP bit must be active in Tate mode when Y2 is pressed");
+
+    // In Tate mode, X4 is Action A
+    gbc_input_process_wsc_keys(WSC_KEY_X4);
+    p1 = gbc_input_read_p1(0x10); // read buttons (bit 5 low)
+    TEST_ASSERT((p1 & 0x01) == 0, "Button A bit must be active in Tate mode when X4 is pressed");
+
+    // Revert to horizontal
+    gbc_features_set_tate_mode(false);
+    TEST_ASSERT(gbc_video_get_orientation() == GBC_ORIENTATION_HORIZONTAL, "Reverting resets to horizontal");
+}
+
+static void test_enhanced_audio_harmonics(void) {
+    gbc_audio_reset();
+
+    // Raw mode: duty cycle 50%
+    gbc_audio_set_enhanced(false);
+    gbc_write8(GB_REG_NR11, 0x80); // 50% duty
+    TEST_ASSERT(g_audio.wsc_ch1_wave[0] == 0, "Raw wave sample 0 must be 0");
+    TEST_ASSERT(g_audio.wsc_ch1_wave[2] == 15, "Raw wave sample 2 must be 15");
+
+    // Enhanced mode: duty cycle 50% smoothed
+    gbc_audio_set_enhanced(true);
+    TEST_ASSERT(gbc_audio_get_enhanced() == true, "Enhanced audio must be enabled");
+    TEST_ASSERT(g_audio.wsc_ch1_wave[0] == 1, "Enhanced smoothed sample 0 must be 1 (tapered)");
+    TEST_ASSERT(g_audio.wsc_ch1_wave[1] == 6, "Enhanced smoothed sample 1 must be 6 (ramp)");
+    TEST_ASSERT(g_audio.wsc_ch1_wave[2] == 13, "Enhanced smoothed sample 2 must be 13 (band-limited)");
+}
+
+static void test_feature_disabling(void) {
+    gbc_hal_reset();
+
+    // 1. Disable widescreen toggle
+    gbc_features_set_widescreen_toggle(false);
+    gbc_video_set_screen_mode(GBC_SCREEN_MODE_STANDARD);
+
+    gbc_input_process_wsc_keys(WSC_KEY_Y4);
+    TEST_ASSERT(gbc_video_get_screen_mode() == GBC_SCREEN_MODE_STANDARD, "Disabled widescreen toggle must keep standard mode");
+
+    // 2. Disable palette cycling
+    gbc_features_set_dmg_palette_cycle(false);
+    gbc_video_set_dmg_palette_preset(DMG_PALETTE_ORIGINAL_GREEN);
+
+    gbc_input_process_wsc_keys(0);
+    gbc_input_process_wsc_keys(WSC_KEY_Y2);
+    TEST_ASSERT(gbc_video_get_dmg_palette_preset() == DMG_PALETTE_ORIGINAL_GREEN, "Disabled palette cycle must not change preset");
+}
+
 int main(void) {
     printf("========================================\n");
     printf("   GBC -> WSC COMPATIBILITY LAYER TESTS \n");
@@ -494,7 +572,7 @@ int main(void) {
     test_screen_mode_widescreen();
     test_hot_toggle_screen_mode_button();
 
-    // New Subsystems Tests:
+    // Subsystems Tests:
     test_audio_translation();
     test_cgb_palettes();
     test_hdma_transfers();
@@ -502,12 +580,18 @@ int main(void) {
     test_mbc2_banking_and_ram();
     test_window_screen2_clipping();
 
+    // New Features & Disabling Tests:
+    test_dmg_palette_presets_and_cycling();
+    test_tate_orientation_and_input();
+    test_enhanced_audio_harmonics();
+    test_feature_disabling();
+
     printf("\nResults:\n");
     printf("  Passed: %d\n", s_tests_passed);
     printf("  Failed: %d\n", s_tests_failed);
 
     if (s_tests_failed == 0) {
-        printf("\nALL TESTS PASSED SUCCESSFULLY (Audio, CGB Palettes/HDMA, MBC2/MBC3 RTC, Screen 2 Window verified).\n");
+        printf("\nALL TESTS PASSED SUCCESSFULLY (Audio, CGB, Mappers, Palettes, Tate, Enhancements verified).\n");
         return 0;
     } else {
         printf("\nTEST SUITE FAILED.\n");
