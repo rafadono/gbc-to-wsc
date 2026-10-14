@@ -52,22 +52,13 @@ The `gbc_wsc_hal` bridges the recompiled and decompiled game logic directly to n
 ## Project Structure
 
 ```
-WS/
-├── core/                       # Shared GBC -> WonderSwan Color HAL (Stage 1 Core)
+gbc-to-wsc/
+├── core/                       # Shared GBC -> WonderSwan Color HAL
 │   ├── include/                # gbc_types.h, gbc_memory.h, gbc_video.h, gbc_input.h...
 │   ├── src/                    # gbc_memory.c, gbc_video.c, gbc_input.c, gbc_hal.c
 │   ├── tests/                  # Hardware abstraction unit tests (61 tests)
 │   ├── Makefile                # Core library (libgbc_wsc.a) and test targets
 │   └── README.md               # Dedicated HAL technical documentation
-├── ports/                      # Game-specific modules (Stage 2 Enhancements)
-│   ├── super_marioland/        # Super Mario Land module (Rev A / v1.1)
-│   │   ├── hooks/              # 28-tile widescreen camera & HUD centering hooks
-│   │   ├── config.json         # Game configuration, SHA-1, and mapper metadata
-│   │   └── README.md           # Super Mario Land documentation and build guide
-│   └── tetris_dx/              # Tetris DX module (CGB)
-│       ├── hooks/              # RGB444 downsampling & SRAM backup hooks
-│       ├── config.json         # Game configuration, SHA-1, and mapper metadata
-│       └── README.md           # Tetris DX documentation and build guide
 ├── tools/                      # Build pipeline, packaging, and test runners
 │   ├── bin/                    # Local tool binaries (gbrecomp)
 │   ├── runner/                 # Desktop test runner drop folder (mednafen, Mesen)
@@ -80,6 +71,23 @@ WS/
 ├── submodules/
 │   └── gb-recompiled/          # Upstream static recompiler submodule
 └── Makefile                    # Root build and orchestration rules
+```
+
+---
+
+## Integration as a Git Submodule
+
+To use `gbc-to-wsc` as the underlying translation HAL in a standalone game port repository:
+
+```bash
+git submodule add https://github.com/rafadono/gbc-to-wsc.git submodules/gbc-to-wsc
+```
+
+In your game's `Makefile`, link against the core library:
+
+```makefile
+CFLAGS += -Isubmodules/gbc-to-wsc/core/include
+LDFLAGS += -Lsubmodules/gbc-to-wsc/core -lgbc_wsc
 ```
 
 ---
